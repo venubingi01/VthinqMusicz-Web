@@ -650,8 +650,8 @@ function resizeCanvas() {
 // Home Page Feeds Loading
 async function loadHomeFeeds() {
 	var latestPromise = SaavnAPI.searchSongs("latest telugu songs", 1, 8);
-	var motivationalPromise = SaavnAPI.searchSongs("motivational songs", 1, 8);
-	var deepFocusPromise = SaavnAPI.searchSongs("deep focus study", 1, 8);
+	var motivationalPromise = SaavnAPI.searchAlbums("bollywood", 1, 8);
+	var deepFocusPromise = SaavnAPI.searchAlbums("hollywood", 1, 8);
 
 	var results = await Promise.all([latestPromise, motivationalPromise, deepFocusPromise]);
 
@@ -661,8 +661,8 @@ async function loadHomeFeeds() {
 
 	// Populate Home Page Grids
 	renderCardsGrid("latest_songs_list", homeFeeds.latest, "latest");
-	renderCardsGrid("motivational_songs_list", homeFeeds.motivational, "motivational");
-	renderCardsGrid("deep_focus_songs_list", homeFeeds.deep_focus, "deep_focus");
+	renderAlbumsList("bollywood_songs_list", homeFeeds.motivational, "motivational");
+	renderAlbumsList("hollywood_songs_list", homeFeeds.deep_focus, "deep_focus");
 
 	// Initialize default playlist with latest songs feed
 	if (playlist.length === 0) {
@@ -717,8 +717,8 @@ function renderCardsGrid(containerId, songsList, categoryKey) {
 
 function updateAllActiveCards() {
 	renderCardsGrid("latest_songs_list", homeFeeds.latest, "latest");
-	renderCardsGrid("motivational_songs_list", homeFeeds.motivational, "motivational");
-	renderCardsGrid("deep_focus_songs_list", homeFeeds.deep_focus, "deep_focus");
+	renderAlbumsList("bollywood_songs_list", homeFeeds.motivational, "bollywood");
+	renderAlbumsList("hollywood_songs_list", homeFeeds.deep_focus, "hollywood");
 	renderSongsList(playlist);
 }
 
@@ -914,18 +914,18 @@ async function loadLyricsForCurrentSong() {
 		updatePlayerSingleLineLyric("♪ " + song.title + " • Synced Lyrics Ready", true);
 	}
 
-	if (lyricsData?.hasTimestamps == false) {
+	if (lyricsData && lyricsData?.hasTimestamps == false) {
 		timed = [];
-
-		// render the lyricsdata.lyrics here]
-		containers.forEach(function (c) {
-			if (!c) return;
-			c.innerHTML = "";
-			c.classList.add("no-scroll");
-			c.innerHTML = '<p class="synced-lyrics">' + lyricsData.lyrics.split("\n").join("<br>") + '</p>';
-		});
-		//updatePlayerSingleLineLyric("♪ " + song.title + " • Synced Lyrics Not Available", false);
-		return;
+		if (lyricsData.lyrics) {
+			// render the lyricsdata.lyrics here]
+			containers.forEach(function (c) {
+				if (!c) return;
+				c.innerHTML = "";
+				c.classList.add("no-scroll");
+				c.innerHTML = '<p class="synced-lyrics">' + lyricsData.lyrics.split("\n").join("<br>") + '</p>';
+			});
+			return;
+		}
 	}
 
 	containers.forEach(function (c) {
@@ -1389,20 +1389,28 @@ function switchTab(tabName, skipHashUpdate) {
 				renderSongsList(playlist);
 			}
 			if (!skipHashUpdate) updateUrlHash("latest");
-		} else if (tabName === "motivational") {
-			if (viewTitle) viewTitle.innerHTML = '<i class="fa fa-fire section-icon"></i> Motivational Songs';
-			if (homeFeeds.motivational.length > 0) {
-				playlist = homeFeeds.motivational;
-				renderSongsList(playlist);
+		} else if (tabName === "bollywood" || tabName === "motivational") {
+			if (viewTitle) viewTitle.innerHTML = '<i class="fa-solid fa-compact-disc section-icon"></i> Bollywood Albums';
+			if (homeFeeds.motivational && homeFeeds.motivational.length > 0) {
+				renderAlbumsList(homeFeeds.motivational);
+			} else {
+				SaavnAPI.searchAlbums("bollywood", 1, 20).then(function (res) {
+					homeFeeds.motivational = res;
+					renderAlbumsList(res);
+				});
 			}
-			if (!skipHashUpdate) updateUrlHash("motivational");
-		} else if (tabName === "deep_focus") {
-			if (viewTitle) viewTitle.innerHTML = '<i class="fa fa-headphones section-icon"></i> Deep Focus Songs';
-			if (homeFeeds.deep_focus.length > 0) {
-				playlist = homeFeeds.deep_focus;
-				renderSongsList(playlist);
+			if (!skipHashUpdate) updateUrlHash("bollywood");
+		} else if (tabName === "hollywood" || tabName === "deep_focus") {
+			if (viewTitle) viewTitle.innerHTML = '<i class="fa-solid fa-compact-disc section-icon"></i> Hollywood Albums';
+			if (homeFeeds.deep_focus && homeFeeds.deep_focus.length > 0) {
+				renderAlbumsList(homeFeeds.deep_focus);
+			} else {
+				SaavnAPI.searchAlbums("hollywood", 1, 20).then(function (res) {
+					homeFeeds.deep_focus = res;
+					renderAlbumsList(res);
+				});
 			}
-			if (!skipHashUpdate) updateUrlHash("deep_focus");
+			if (!skipHashUpdate) updateUrlHash("hollywood");
 		} else if (tabName === "search") {
 			if (viewTitle) viewTitle.textContent = "Search Music";
 			if (songSearch) songSearch.focus();
@@ -1988,18 +1996,38 @@ function initAudioPlayer() {
 	setTimeout(handleUrlHashNavigation, 300);
 }
 
-function renderAlbumsList(albumsList) {
-	var songsContainer = document.getElementById("songslistcon");
-	if (!songsContainer) return;
-	songsContainer.innerHTML = "";
+function renderAlbumsList(containerOrList, maybeAlbumsList, categoryKey) {
+	var targetContainer = null;
+	var albumsList = null;
+
+	if (typeof containerOrList === "string") {
+		targetContainer = document.getElementById(containerOrList);
+		albumsList = maybeAlbumsList;
+	} else if (containerOrList && containerOrList.nodeType) {
+		targetContainer = containerOrList;
+		albumsList = maybeAlbumsList;
+	} else {
+		targetContainer = document.getElementById("songslistcon");
+		albumsList = containerOrList;
+	}
+
+	if (!targetContainer) return;
+	targetContainer.innerHTML = "";
 
 	if (!albumsList || albumsList.length === 0) {
-		songsContainer.innerHTML = '<div class="no-songs"><i class="fa-solid fa-compact-disc"></i> No albums found. Try searching for album name or movie title.</div>';
+		targetContainer.innerHTML = '<div class="no-songs"><i class="fa-solid fa-compact-disc"></i> No albums found.</div>';
 		return;
 	}
 
-	var grid = document.createElement("div");
-	grid.className = "cards-grid";
+	var isDirectGrid = targetContainer.classList.contains("cards-grid");
+	var parentContainer = targetContainer;
+
+	if (!isDirectGrid) {
+		var grid = document.createElement("div");
+		grid.className = "cards-grid";
+		targetContainer.appendChild(grid);
+		parentContainer = grid;
+	}
 
 	albumsList.forEach(function (album) {
 		var card = document.createElement("div");
@@ -2020,10 +2048,8 @@ function renderAlbumsList(albumsList) {
 			openAlbumDetails(album.id);
 		};
 
-		grid.appendChild(card);
+		parentContainer.appendChild(card);
 	});
-
-	songsContainer.appendChild(grid);
 }
 
 async function openAlbumDetails(albumId, autoPlay) {

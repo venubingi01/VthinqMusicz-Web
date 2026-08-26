@@ -25,11 +25,11 @@
    <link href="font-awesome/css/v4-shims.min.css" rel="stylesheet">
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
    <link rel="stylesheet" href="css/icons.min.css">
-   <link href="css/style.css?v=13" rel="stylesheet" type="text/css">
+   <link href="css/style.css?v=14" rel="stylesheet" type="text/css">
    <script type="text/javascript" src="javascript/crypto-js.min.js"></script>
-   <script type="text/javascript" src="javascript/audio_player.js?v=13"></script>
-   <script type="text/javascript" src="javascript/ai_chat.js?v=3"></script>
-   <script type="text/javascript" src="javascript/pwa_install.js?v=3"></script>
+   <script type="text/javascript" src="javascript/audio_player.js?v=14"></script>
+   <script type="text/javascript" src="javascript/ai_chat.js?v=4"></script>
+   <script type="text/javascript" src="javascript/pwa_install.js?v=4"></script>
    <script>
       if ('serviceWorker' in navigator) {
          window.addEventListener('load', function () {
@@ -60,10 +60,10 @@
                <ul class="header-action-list">
                   <li title="Home" class="nav-icon active" data-tab="home"><i class="fa fa-home"></i></li>
                   <li title="Search" class="nav-icon" data-tab="search"><i class="fa fa-search"></i></li>
-                  <li id="header_install_btn" class="install-pwa-chip" title="Add Sangeetham to Home Screen"
+                  <!-- <li id="header_install_btn" class="install-pwa-chip" title="Add Sangeetham to Home Screen"
                      style="display: none;">
-                     <i class="fa-solid fa-download"></i> <span>Install</span>
-                  </li>
+                     <i class="fa-solid fa-download"></i>
+                  </li> -->
                   <li id="top_funding_btn" class="sponsor-chip" title="Developer Profile & Support"><i
                         class="fa fa-user"></i></li>
                </ul>
@@ -86,530 +86,529 @@
 
       <div id="middle_container" class="middle-container">
          <!-- Home View with Curated Sections -->
-         <div id="home_view" class="view-screen active">
-            <div class="innerscreen">
 
-               <!-- Latest Songs Section -->
-               <div class="section-container" id="latest_section">
-                  <div class="content-heading">
-                     <h2><i class="fa fa-bolt section-icon"></i> Latest Songs</h2>
-                     <button class="view-all-btn" data-tab="latest">View All <i class="fa fa-angle-right"></i></button>
-                  </div>
-                  <div id="latest_songs_list" class="cards-grid">
-                     <div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Fetching latest songs...
-                     </div>
-                  </div>
-               </div>
-
-               <!-- Motivational Songs Section -->
-               <div class="section-container" id="motivational_section">
-                  <div class="content-heading">
-                     <h2><i class="fa fa-fire section-icon"></i> Motivational Songs</h2>
-                     <button class="view-all-btn" data-tab="motivational">View All <i
-                           class="fa fa-angle-right"></i></button>
-                  </div>
-                  <div id="motivational_songs_list" class="cards-grid">
-                     <div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Fetching motivational
-                        songs...</div>
-                  </div>
-               </div>
-
-               <!-- Deep Focus Songs Section -->
-               <div class="section-container" id="deep_focus_section">
-                  <div class="content-heading">
-                     <h2><i class="fa fa-headphones section-icon"></i> Deep Focus Songs</h2>
-                     <button class="view-all-btn" data-tab="deep_focus">View All <i
-                           class="fa fa-angle-right"></i></button>
-                  </div>
-                  <div id="deep_focus_songs_list" class="cards-grid">
-                     <div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Fetching deep focus
-                        songs...</div>
-                  </div>
-               </div>
-
-            </div>
-         </div>
-
-         <!-- Dedicated Search / Detailed Category View -->
-         <div id="search_view" class="view-screen">
-            <div class="innerscreen">
-               <div class="search-hero">
-                  <div class="content-heading search-heading">
-                     <h2 id="view_title">Search Music</h2>
-                  </div>
-                  <div class="search-input-box">
-                     <i class="fa fa-search search-icon"></i>
-                     <input type="text" id="song_search" placeholder="Search songs, artists, albums..."
-                        autocomplete="off">
-                     <button id="voice_search_btn" class="voice-search-btn" title="Search with Voice"><i
-                           class="fa fa-microphone"></i></button>
-                     <button id="clear_search_btn" class="clear-search-btn" title="Clear search"><i
-                           class="fa fa-times-circle"></i></button>
-                  </div>
-                  <div class="search-chips">
-                     <span class="chip" data-query="Arijit Singh"><i class="fa fa-music"></i> Arijit Singh</span>
-                     <span class="chip" data-query="Trending Hindi"><i class="fa fa-fire"></i> Trending Hindi</span>
-                     <span class="chip" data-query="Lofi Study"><i class="fa fa-headphones"></i> Lo-Fi Study</span>
-                     <span class="chip" data-query="A.R. Rahman"><i class="fa fa-star"></i> A.R. Rahman</span>
-                     <span class="chip" data-query="Anirudh"><i class="fa fa-bolt"></i> Anirudh</span>
-                     <span class="chip" data-query="Sid Sriram"><i class="fa fa-heart"></i> Sid Sriram</span>
-                  </div>
-                  <!-- Search Filter Type (Songs vs Albums) -->
-                  <div class="search-filter-pills" id="search_filter_pills">
-                     <button class="search-filter-pill active" data-search-type="songs"><i
-                           class="fa-solid fa-music"></i> Songs</button>
-                     <button class="search-filter-pill" data-search-type="albums"><i
-                           class="fa-solid fa-compact-disc"></i> Albums</button>
-                  </div>
-               </div>
-               <div id="songslistcon">
-                  <div class="no-songs">Use the search box above, try voice search, or tap a tag to discover millions of
-                     songs & albums.</div>
-               </div>
-            </div>
-         </div>
-
-         <!-- Dedicated Album View Screen -->
-         <div id="album_view" class="view-screen">
-            <div class="innerscreen album-view-layout">
-               <div class="album-header-bar">
-                  <button id="album_back_btn" class="album-back-btn" title="Back to Search"><i
-                        class="fa fa-arrow-left"></i> Back</button>
-                  <button id="share_album_btn" class="album-share-btn" title="Share Album Link"><i
-                        class="fa-solid fa-share-nodes"></i> Share Album</button>
-               </div>
-               <div class="album-hero">
-                  <div class="album-cover-wrapper">
-                     <div class="album-cover-glow" id="album_cover_glow"></div>
-                     <img id="album_hero_cover" class="album-hero-cover"
-                        src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80"
-                        alt="Album Cover">
-                  </div>
-                  <div class="album-hero-meta">
-                     <span class="album-type-badge"><i class="fa-solid fa-compact-disc"></i> ALBUM</span>
-                     <h1 id="album_hero_title">Album Name</h1>
-                     <p id="album_hero_artists">Primary Artists</p>
-                     <div class="album-extra-info">
-                        <span id="album_hero_year">2024</span> •
-                        <span id="album_hero_count">0 Songs</span> •
-                        <span id="album_hero_lang">TELUGU</span>
-                     </div>
-                     <div class="album-action-buttons">
-                        <button id="album_play_all_btn" class="album-play-btn"><i class="fa fa-play"></i> Play
-                           All</button>
-                        <button id="album_shuffle_btn" class="album-secondary-btn"><i class="fa fa-random"></i>
-                           Shuffle</button>
-                     </div>
-                  </div>
-               </div>
-               <div class="album-tracklist-container">
-                  <div class="tracklist-heading">
-                     <h3><i class="fa-solid fa-list-ol"></i> Album Tracklist</h3>
-                  </div>
-                  <div id="album_songs_list" class="album-songs-list">
-                     <div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Loading album songs...
-                     </div>
-                  </div>
-               </div>
-            </div>
-         </div>
-
-         <!-- AI DJ Music Assistant Chat View -->
-         <div id="chat_view" class="view-screen">
-            <div class="innerscreen chat-screen-layout">
-               <div class="chat-header-bar">
-                  <div class="chat-bot-profile">
-                     <div class="chat-bot-avatar">
-                        <i class="fa fa-magic"></i>
-                        <span class="online-indicator"></span>
-                     </div>
-                     <div class="chat-bot-info">
-                        <h2>Sangeetham AI</h2>
-                        <p>
-
-                           <i class="fa-brands fa-deezer"></i>
-                           Online • Intelligent Music Recommendation & DJ
-                        </p>
-                     </div>
-                  </div>
-                  <div class="chat-actions">
-                     <button id="clear_chat_btn" class="chat-action-btn" title="Clear conversation"><i
-                           class="fa fa-trash-o"></i> Clear</button>
-                  </div>
-               </div>
-
-               <!-- Chat Messages Feed -->
-               <div id="chat_messages_container" class="chat-messages-container">
-                  <div class="chat-message bot-message">
-                     <div class="message-avatar"><i class="fa fa-magic"></i></div>
-                     <div class="message-body">
-                        <div class="message-bubble">
-                           <p>👋 Welcome! I am your <strong>Sangeetham AI Music DJ</strong>. How are you feeling today?
-                              Tell me a mood, artist, genre, or asking for track recommendations!</p>
-                        </div>
-                        <div class="chat-quick-suggestions">
-                           <button class="chat-chip" data-prompt="Play trending Hindi hits">🔥 Trending Hindi</button>
-                           <button class="chat-chip" data-prompt="Calm acoustic songs for relaxation">☕ Chill
-                              Acoustic</button>
-                           <button class="chat-chip" data-prompt="High energy workout tracks">⚡ Workout Pump</button>
-                           <button class="chat-chip" data-prompt="Deep focus instrumental lo-fi beats">🎧 Focus
-                              Lo-Fi</button>
-                           <button class="chat-chip" data-prompt="Best romantic melodies of A.R. Rahman">❤️ A.R. Rahman
-                              Hits</button>
-                        </div>
-                     </div>
-                  </div>
-               </div>
-
-               <!-- Chat Input Dock -->
-               <div class="chat-input-bar">
-                  <div class="chat-input-wrapper">
-                     <input type="text" id="chat_input"
-                        placeholder="Ask AI: 'Play upbeat pop', 'Sad Telugu songs', 'Recommend songs like Temper'..."
-                        autocomplete="off">
-                     <button id="chat_voice_btn" class="chat-mic-btn" title="Speak to AI">
-                        <i class="fa fa-microphone"></i>
-                     </button>
-                     <button id="send_chat_btn" class="chat-send-btn" title="Send Prompt"><i
-                           class="fa fa-paper-plane"></i></button>
-                  </div>
-               </div>
-            </div>
-         </div>
-
-         <!-- Dedicated Synced Lyrics View (Apple Music Style Split View) -->
-         <div id="lyrics_view" class="view-screen">
-            <div class="innerscreen lyrics-split-layout">
-
-               <!-- Left Column: Ambient Artwork & Metadata -->
-               <div class="lyrics-left-panel">
-                  <div class="lyrics-art-wrapper">
-                     <div class="lyrics-art-glow" id="lyrics_art_glow"></div>
-                     <img id="lyrics_cover" class="lyrics-cover-large"
-                        src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80"
-                        alt="Song Cover">
-                  </div>
-                  <div class="lyrics-track-details">
-                     <h2 id="lyrics_title">No Track Selected</h2>
-                     <p id="lyrics_artist">Select a song to load real-time synced lyrics</p>
-                     <div class="lyrics-badges-row">
-                     </div>
-                  </div>
-
-                  <div class="lyrics-controls-group">
-                     <div class="lyrics-live-badge" id="visualizer_toggle"><i class="fa-brands fa-soundcloud"></i>
-                        <span>Visualizer</span>
-                        <span class="floating-pulse-ring"></span>
-                     </div>
-                     <button id="share_lyrics_btn" class="lyrics-share-action-btn" title="Share Live Lyrics Link">
-                        <i class="fa-solid fa-share-nodes"></i> <span>Share Lyrics</span>
-                     </button>
-                  </div>
-               </div>
-
-               <!-- Right Column: Karaoke Synced Lyrics Container -->
-               <div class="lyrics-right-panel">
-                  <div id="lyrics_container" class="lyrics-content-scroll">
-                     <div class="no-lyrics-placeholder">
-                        <i class="fa fa-quote-right"></i>
-                        <p>Select a track to start playback and view synced lyrics.</p>
-                     </div>
-                  </div>
-               </div>
-
-            </div>
-
-
-
-         </div>
-
-         <footer class="app-footer">
-            <div class="footer-container">
-               <div class="dev-credits">
-                  <span class="dev-tag"><i class="fa fa-code"></i> Developed with ❤️ by <strong>Venu
-                        Bingi</strong></span>
-                  <span class="footer-sep">•</span>
-                  <span class="app-ver">Sangeetham AI Player</span>
-               </div>
-               <div class="footer-buttons">
-                  <button id="footer_funding_btn" class="footer-action-btn sponsor-btn"><i
-                        class="fa fa-user-circle"></i> Developer Profile</button>
-               </div>
-            </div>
-         </footer>
       </div>
+   </div>
 
-      <!-- Developer & App Footer -->
+   <div id="home_view" class="view-screen active">
+      <div class="innerscreen">
 
-      <!-- Floating Lyrics Modal Overlay -->
-      <div id="lyrics_modal" class="lyrics-modal-overlay">
-         <div class="lyrics-modal-card">
-            <div class="modal-header">
-               <div class="modal-track-info">
-                  <img id="modal_lyrics_cover" class="modal-cover-art"
-                     src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80"
-                     alt="Track Cover">
-                  <div>
-                     <h3 id="modal_lyrics_title">Song Lyrics</h3>
-                     <p id="modal_lyrics_artist">Artist</p>
-                  </div>
-               </div>
-               <button id="close_lyrics_modal" class="close-modal-btn"><i class="fa fa-times"></i></button>
+         <!-- Latest Songs Section -->
+         <div class="section-container" id="latest_section">
+            <div class="content-heading">
+               <h2><i class="fa fa-bolt section-icon"></i> Latest Songs</h2>
+               <button class="view-all-btn" data-tab="latest">View All <i class="fa fa-angle-right"></i></button>
             </div>
-            <div id="modal_lyrics_container" class="lyrics-modal-scroll">
-               <div class="no-lyrics-placeholder"><i class="fa fa-music"></i> Loading lyrics...</div>
+            <div id="latest_songs_list" class="cards-grid">
+               <div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Fetching latest songs...
+               </div>
+            </div>
+         </div>
+
+         <!-- Bollywood Albums Section -->
+         <div class="section-container" id="bollywood_section">
+            <div class="content-heading">
+               <h2><i class="fa-solid fa-compact-disc section-icon"></i> Bollywood Albums</h2>
+               <button class="view-all-btn" data-tab="bollywood">View All <i class="fa fa-angle-right"></i></button>
+            </div>
+            <div id="bollywood_songs_list" class="cards-grid">
+               <div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Fetching Bollywood
+                  albums...</div>
+            </div>
+         </div>
+
+         <!-- Hollywood Albums Section -->
+         <div class="section-container" id="hollywood_section">
+            <div class="content-heading">
+               <h2><i class="fa-solid fa-compact-disc section-icon"></i> Hollywood Albums</h2>
+               <button class="view-all-btn" data-tab="hollywood">View All <i class="fa fa-angle-right"></i></button>
+            </div>
+            <div id="hollywood_songs_list" class="cards-grid">
+               <div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Fetching Hollywood
+                  albums...</div>
             </div>
          </div>
       </div>
+   </div>
 
-      <!-- Feedback Form Modal -->
-      <div id="feedback_modal" class="modal-overlay">
-         <div class="modal-card feedback-modal-card">
-            <div class="modal-header">
-               <div class="modal-title-box">
-                  <i class="fa fa-commenting modal-header-icon"></i>
-                  <div>
-                     <h3>Send Feedback</h3>
-                     <p>Share your ideas or report issues to Venu Bingi</p>
-                  </div>
-               </div>
-               <button id="close_feedback_modal" class="close-modal-btn"><i class="fa fa-times"></i></button>
+
+   <!-- Dedicated Search / Detailed Category View -->
+   <div id="search_view" class="view-screen">
+      <div class="innerscreen">
+         <div class="search-hero">
+            <div class="content-heading search-heading">
+               <h2 id="view_title">Search Music</h2>
             </div>
-            <form id="feedback_form" class="modal-form">
-               <div class="form-group">
-                  <label>Overall Experience</label>
-                  <div class="star-rating" id="star_rating">
-                     <i class="fa fa-star star-btn active" data-star="1"></i>
-                     <i class="fa fa-star star-btn active" data-star="2"></i>
-                     <i class="fa fa-star star-btn active" data-star="3"></i>
-                     <i class="fa fa-star star-btn active" data-star="4"></i>
-                     <i class="fa fa-star star-btn active" data-star="5"></i>
-                  </div>
-               </div>
-               <div class="form-row">
-                  <div class="form-group col-half">
-                     <label for="fb_name">Name</label>
-                     <input type="text" id="fb_name" placeholder="Your name" required>
-                  </div>
-                  <div class="form-group col-half">
-                     <label for="fb_category">Category</label>
-                     <select id="fb_category">
-                        <option value="General">💬 General Feedback</option>
-                        <option value="Bug">🐛 Bug Report</option>
-                        <option value="Feature">✨ Feature Request</option>
-                        <option value="Audio">🎵 Music / Playback</option>
-                     </select>
-                  </div>
-               </div>
-               <div class="form-group">
-                  <label for="fb_message">Message</label>
-                  <textarea id="fb_message" rows="4" placeholder="How can we make Sangeetham better?"
-                     required></textarea>
-               </div>
-               <button type="submit" class="submit-modal-btn"><i class="fa fa-paper-plane"></i> Submit Feedback</button>
-            </form>
+            <div class="search-input-box">
+               <i class="fa fa-search search-icon"></i>
+               <input type="text" id="song_search" placeholder="Search songs, artists, albums..." autocomplete="off">
+               <button id="voice_search_btn" class="voice-search-btn" title="Search with Voice"><i
+                     class="fa fa-microphone"></i></button>
+               <button id="clear_search_btn" class="clear-search-btn" title="Clear search"><i
+                     class="fa fa-times-circle"></i></button>
+            </div>
+            <div class="search-chips">
+               <span class="chip" data-query="Arijit Singh"><i class="fa fa-music"></i> Arijit Singh</span>
+               <span class="chip" data-query="Trending Hindi"><i class="fa fa-fire"></i> Trending Hindi</span>
+               <span class="chip" data-query="Lofi Study"><i class="fa fa-headphones"></i> Lo-Fi Study</span>
+               <span class="chip" data-query="A.R. Rahman"><i class="fa fa-star"></i> A.R. Rahman</span>
+               <span class="chip" data-query="Anirudh"><i class="fa fa-bolt"></i> Anirudh</span>
+               <span class="chip" data-query="Sid Sriram"><i class="fa fa-heart"></i> Sid Sriram</span>
+            </div>
+            <!-- Search Filter Type (Songs vs Albums) -->
+            <div class="search-filter-pills" id="search_filter_pills">
+               <button class="search-filter-pill active" data-search-type="songs"><i class="fa-solid fa-music"></i>
+                  Songs</button>
+               <button class="search-filter-pill" data-search-type="albums"><i class="fa-solid fa-compact-disc"></i>
+                  Albums</button>
+            </div>
+         </div>
+         <div id="songslistcon">
+            <div class="no-songs">Use the search box above, try voice search, or tap a tag to discover millions of
+               songs & albums.</div>
          </div>
       </div>
+   </div>
 
-      <!-- Developer Profile & Support Modal -->
-      <div id="funding_modal" class="modal-overlay">
-         <div class="modal-card funding-modal-card">
-            <div class="modal-header">
-               <div class="modal-title-box">
-                  <i class="fa fa-user-circle modal-header-icon dev-icon"></i>
-                  <div>
-                     <h3>Developer Profile & Support</h3>
-                     <p>Developed with ❤️ by Venu Bingi • Sangeetham AI Player</p>
+   <!-- Dedicated Album View Screen -->
+   <div id="album_view" class="view-screen">
+      <div class="innerscreen album-view-layout">
+         <div class="album-header-bar">
+            <button id="album_back_btn" class="album-back-btn" title="Back to Search"><i class="fa fa-arrow-left"></i>
+               Back</button>
+            <button id="share_album_btn" class="album-share-btn" title="Share Album Link"><i
+                  class="fa-solid fa-share-nodes"></i> Share Album</button>
+         </div>
+         <div class="album-hero">
+            <div class="album-cover-wrapper">
+               <div class="album-cover-glow" id="album_cover_glow"></div>
+               <img id="album_hero_cover" class="album-hero-cover"
+                  src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80"
+                  alt="Album Cover">
+            </div>
+            <div class="album-hero-meta">
+               <span class="album-type-badge"><i class="fa-solid fa-compact-disc"></i> ALBUM</span>
+               <h1 id="album_hero_title">Album Name</h1>
+               <p id="album_hero_artists">Primary Artists</p>
+               <div class="album-extra-info">
+                  <span id="album_hero_year">2024</span> •
+                  <span id="album_hero_count">0 Songs</span> •
+                  <span id="album_hero_lang">TELUGU</span>
+               </div>
+               <div class="album-action-buttons">
+                  <button id="album_play_all_btn" class="album-play-btn"><i class="fa fa-play"></i> Play
+                     All</button>
+                  <button id="album_shuffle_btn" class="album-secondary-btn"><i class="fa fa-random"></i>
+                     Shuffle</button>
+               </div>
+            </div>
+         </div>
+         <div class="album-tracklist-container">
+            <div class="tracklist-heading">
+               <h3><i class="fa-solid fa-list-ol"></i> Album Tracklist</h3>
+            </div>
+            <div id="album_songs_list" class="album-songs-list">
+               <div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Loading album songs...
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <!-- AI DJ Music Assistant Chat View -->
+   <div id="chat_view" class="view-screen">
+      <div class="innerscreen chat-screen-layout">
+         <div class="chat-header-bar">
+            <div class="chat-bot-profile">
+               <div class="chat-bot-avatar">
+                  <i class="fa fa-magic"></i>
+                  <span class="online-indicator"></span>
+               </div>
+               <div class="chat-bot-info">
+                  <h2>Sangeetham AI</h2>
+                  <p>
+
+                     <i class="fa-brands fa-deezer"></i>
+                     Online • Intelligent Music Recommendation & DJ
+                  </p>
+               </div>
+            </div>
+            <div class="chat-actions">
+               <button id="clear_chat_btn" class="chat-action-btn" title="Clear conversation"><i
+                     class="fa fa-trash-o"></i> Clear</button>
+            </div>
+         </div>
+
+         <!-- Chat Messages Feed -->
+         <div id="chat_messages_container" class="chat-messages-container">
+            <div class="chat-message bot-message">
+               <div class="message-avatar"><i class="fa fa-magic"></i></div>
+               <div class="message-body">
+                  <div class="message-bubble">
+                     <p>👋 Welcome! I am your <strong>Sangeetham AI Music DJ</strong>. How are you feeling today?
+                        Tell me a mood, artist, genre, or asking for track recommendations!</p>
+                  </div>
+                  <div class="chat-quick-suggestions">
+                     <button class="chat-chip" data-prompt="Play trending Hindi hits">🔥 Trending Hindi</button>
+                     <button class="chat-chip" data-prompt="Calm acoustic songs for relaxation">☕ Chill
+                        Acoustic</button>
+                     <button class="chat-chip" data-prompt="High energy workout tracks">⚡ Workout Pump</button>
+                     <button class="chat-chip" data-prompt="Deep focus instrumental lo-fi beats">🎧 Focus
+                        Lo-Fi</button>
+                     <button class="chat-chip" data-prompt="Best romantic melodies of A.R. Rahman">❤️ A.R. Rahman
+                        Hits</button>
                   </div>
                </div>
-               <button id="close_funding_modal" class="close-modal-btn"><i class="fa fa-times"></i></button>
             </div>
-            <div class="funding-body">
-               <a href="https://www.linkedin.com/in/venu-bingi-bbb9689a" target="_blank" rel="noopener"
-                  class="funding-option-card dev-profile-link-card">
-                  <div class="dev-avatar"><i class="fa fa-linkedin"></i></div>
-                  <div class="dev-info-text">
-                     <h4>Developed with ❤️ by <strong>Venu Bingi</strong> <i
-                           class="fa fa-external-link dev-link-icon"></i>
-                     </h4>
-                     <p>Creating open-source audio streaming applications and developer tools.</p>
+         </div>
+
+         <!-- Chat Input Dock -->
+         <div class="chat-input-bar">
+            <div class="chat-input-wrapper">
+               <input type="text" id="chat_input"
+                  placeholder="Ask AI: 'Play upbeat pop', 'Sad Telugu songs', 'Recommend songs like Temper'..."
+                  autocomplete="off">
+               <button id="chat_voice_btn" class="chat-mic-btn" title="Speak to AI">
+                  <i class="fa fa-microphone"></i>
+               </button>
+               <button id="send_chat_btn" class="chat-send-btn" title="Send Prompt"><i
+                     class="fa fa-paper-plane"></i></button>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <!-- Dedicated Synced Lyrics View (Apple Music Style Split View) -->
+   <div id="lyrics_view" class="view-screen">
+      <div class="innerscreen lyrics-split-layout">
+
+         <!-- Left Column: Ambient Artwork & Metadata -->
+         <div class="lyrics-left-panel">
+            <div class="lyrics-art-wrapper">
+               <div class="lyrics-art-glow" id="lyrics_art_glow"></div>
+               <img id="lyrics_cover" class="lyrics-cover-large"
+                  src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80"
+                  alt="Song Cover">
+            </div>
+            <div class="lyrics-track-details">
+               <h2 id="lyrics_title">No Track Selected</h2>
+               <p id="lyrics_artist">Select a song to load real-time synced lyrics</p>
+               <div class="lyrics-badges-row">
+               </div>
+            </div>
+
+            <div class="lyrics-controls-group">
+               <div class="lyrics-live-badge" id="visualizer_toggle"><i class="fa-brands fa-soundcloud"></i>
+                  <span>Visualizer</span>
+                  <span class="floating-pulse-ring"></span>
+               </div>
+               <button id="share_lyrics_btn" class="lyrics-share-action-btn" title="Share Live Lyrics Link">
+                  <i class="fa-solid fa-share-nodes"></i> <span>Share Lyrics</span>
+               </button>
+            </div>
+         </div>
+
+         <!-- Right Column: Karaoke Synced Lyrics Container -->
+         <div class="lyrics-right-panel">
+            <div id="lyrics_container" class="lyrics-content-scroll">
+               <div class="no-lyrics-placeholder">
+                  <i class="fa fa-quote-right"></i>
+                  <p>Select a track to start playback and view synced lyrics.</p>
+               </div>
+            </div>
+         </div>
+
+      </div>
+
+
+
+   </div>
+
+   <footer class="app-footer">
+      <div class="footer-container">
+         <div class="dev-credits">
+            <span class="dev-tag"><i class="fa fa-code"></i> Developed with ❤️ by <strong>Venu
+                  Bingi</strong></span>
+            <span class="footer-sep">•</span>
+            <span class="app-ver">Sangeetham AI Player</span>
+         </div>
+         <div class="footer-buttons">
+            <button id="footer_funding_btn" class="footer-action-btn sponsor-btn"><i class="fa fa-user-circle"></i>
+               Developer Profile</button>
+         </div>
+      </div>
+   </footer>
+   </div>
+
+   <!-- Developer & App Footer -->
+
+   <!-- Floating Lyrics Modal Overlay -->
+   <div id="lyrics_modal" class="lyrics-modal-overlay">
+      <div class="lyrics-modal-card">
+         <div class="modal-header">
+            <div class="modal-track-info">
+               <img id="modal_lyrics_cover" class="modal-cover-art"
+                  src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80"
+                  alt="Track Cover">
+               <div>
+                  <h3 id="modal_lyrics_title">Song Lyrics</h3>
+                  <p id="modal_lyrics_artist">Artist</p>
+               </div>
+            </div>
+            <button id="close_lyrics_modal" class="close-modal-btn"><i class="fa fa-times"></i></button>
+         </div>
+         <div id="modal_lyrics_container" class="lyrics-modal-scroll">
+            <div class="no-lyrics-placeholder"><i class="fa fa-music"></i> Loading lyrics...</div>
+         </div>
+      </div>
+   </div>
+
+   <!-- Feedback Form Modal -->
+   <div id="feedback_modal" class="modal-overlay">
+      <div class="modal-card feedback-modal-card">
+         <div class="modal-header">
+            <div class="modal-title-box">
+               <i class="fa fa-commenting modal-header-icon"></i>
+               <div>
+                  <h3>Send Feedback</h3>
+                  <p>Share your ideas or report issues to Venu Bingi</p>
+               </div>
+            </div>
+            <button id="close_feedback_modal" class="close-modal-btn"><i class="fa fa-times"></i></button>
+         </div>
+         <form id="feedback_form" class="modal-form">
+            <div class="form-group">
+               <label>Overall Experience</label>
+               <div class="star-rating" id="star_rating">
+                  <i class="fa fa-star star-btn active" data-star="1"></i>
+                  <i class="fa fa-star star-btn active" data-star="2"></i>
+                  <i class="fa fa-star star-btn active" data-star="3"></i>
+                  <i class="fa fa-star star-btn active" data-star="4"></i>
+                  <i class="fa fa-star star-btn active" data-star="5"></i>
+               </div>
+            </div>
+            <div class="form-row">
+               <div class="form-group col-half">
+                  <label for="fb_name">Name</label>
+                  <input type="text" id="fb_name" placeholder="Your name" required>
+               </div>
+               <div class="form-group col-half">
+                  <label for="fb_category">Category</label>
+                  <select id="fb_category">
+                     <option value="General">💬 General Feedback</option>
+                     <option value="Bug">🐛 Bug Report</option>
+                     <option value="Feature">✨ Feature Request</option>
+                     <option value="Audio">🎵 Music / Playback</option>
+                  </select>
+               </div>
+            </div>
+            <div class="form-group">
+               <label for="fb_message">Message</label>
+               <textarea id="fb_message" rows="4" placeholder="How can we make Sangeetham better?" required></textarea>
+            </div>
+            <button type="submit" class="submit-modal-btn"><i class="fa fa-paper-plane"></i> Submit Feedback</button>
+         </form>
+      </div>
+   </div>
+
+   <!-- Developer Profile & Support Modal -->
+   <div id="funding_modal" class="modal-overlay">
+      <div class="modal-card funding-modal-card">
+         <div class="modal-header">
+            <div class="modal-title-box">
+               <i class="fa fa-user-circle modal-header-icon dev-icon"></i>
+               <div>
+                  <h3>Developer Profile & Support</h3>
+                  <p>Developed with ❤️ by Venu Bingi • Sangeetham AI Player</p>
+               </div>
+            </div>
+            <button id="close_funding_modal" class="close-modal-btn"><i class="fa fa-times"></i></button>
+         </div>
+         <div class="funding-body">
+            <a href="https://www.linkedin.com/in/venu-bingi-bbb9689a" target="_blank" rel="noopener"
+               class="funding-option-card dev-profile-link-card">
+               <div class="dev-avatar"><i class="fa fa-linkedin"></i></div>
+               <div class="dev-info-text">
+                  <h4>Developed with ❤️ by <strong>Venu Bingi</strong> <i class="fa fa-external-link dev-link-icon"></i>
+                  </h4>
+                  <p>Creating open-source audio streaming applications and developer tools.</p>
+               </div>
+            </a>
+
+            <div class="funding-options-list">
+               <a href="https://buymeacoffee.com" target="_blank" rel="noopener"
+                  class="funding-option-card coffee-theme">
+                  <span class="funding-emoji">☕</span>
+                  <div class="funding-details">
+                     <h5>Buy Me a Coffee</h5>
+                     <p>Support the project with a $3 coffee contribution</p>
                   </div>
+                  <i class="fa fa-external-link"></i>
                </a>
 
-               <div class="funding-options-list">
-                  <a href="https://buymeacoffee.com" target="_blank" rel="noopener"
-                     class="funding-option-card coffee-theme">
-                     <span class="funding-emoji">☕</span>
-                     <div class="funding-details">
-                        <h5>Buy Me a Coffee</h5>
-                        <p>Support the project with a $3 coffee contribution</p>
-                     </div>
-                     <i class="fa fa-external-link"></i>
-                  </a>
+               <button id="modal_feedback_option_btn" type="button" class="funding-option-card feedback-theme-btn">
+                  <span class="funding-emoji">💬</span>
+                  <div class="funding-details">
+                     <h5>Send Feedback & Suggestions</h5>
+                     <p>Rate the player, report bugs or request features</p>
+                  </div>
+                  <i class="fa fa-angle-right"></i>
+               </button>
 
-                  <button id="modal_feedback_option_btn" type="button" class="funding-option-card feedback-theme-btn">
-                     <span class="funding-emoji">💬</span>
-                     <div class="funding-details">
-                        <h5>Send Feedback & Suggestions</h5>
-                        <p>Rate the player, report bugs or request features</p>
+               <div class="upi-card">
+                  <div class="upi-title">
+                     <i class="fa fa-qrcode"></i> <span>Scan & Pay via PhonePe / Any UPI App</span>
+                  </div>
+                  <div class="upi-qr-wrapper">
+                     <img src="images/phonepe_qr.png" alt="PhonePe QR Code - B Venu" class="upi-qr-image"
+                        title="Scan & Pay using PhonePe, Google Pay, Paytm or any UPI App">
+                     <div class="upi-qr-badge">
+                        <i class="fa-solid fa-bolt"></i> Instant UPI Support (B VENU)
                      </div>
-                     <i class="fa fa-angle-right"></i>
-                  </button>
-
-                  <div class="upi-card">
-                     <div class="upi-title">
-                        <i class="fa fa-qrcode"></i> <span>Scan & Pay via PhonePe / Any UPI App</span>
-                     </div>
-                     <div class="upi-qr-wrapper">
-                        <img src="images/phonepe_qr.png" alt="PhonePe QR Code - B Venu" class="upi-qr-image"
-                           title="Scan & Pay using PhonePe, Google Pay, Paytm or any UPI App">
-                        <div class="upi-qr-badge">
-                           <i class="fa-solid fa-bolt"></i> Instant UPI Support (B VENU)
-                        </div>
-                     </div>
-                     <div class="upi-input-group">
-                        <input type="text" id="upi_id_val" value="bgvenugopal2010@ybl" readonly>
-                        <button id="copy_upi_btn" class="copy-upi-btn"><i class="fa fa-copy"></i> Copy UPI</button>
-                     </div>
+                  </div>
+                  <div class="upi-input-group">
+                     <input type="text" id="upi_id_val" value="bgvenugopal2010@ybl" readonly>
+                     <button id="copy_upi_btn" class="copy-upi-btn"><i class="fa fa-copy"></i> Copy UPI</button>
                   </div>
                </div>
             </div>
          </div>
       </div>
+   </div>
 
-      <!-- Interactive Voice Search Modal Overlay -->
-      <div id="voice_search_modal" class="voice-modal-overlay">
-         <div class="voice-modal-card">
-            <button id="close_voice_modal" class="close-modal-btn" title="Close"><i class="fa fa-times"></i></button>
-            <div class="voice-wave-container">
-               <div class="voice-ripple r1"></div>
-               <div class="voice-ripple r2"></div>
-               <div class="voice-ripple r3"></div>
-               <div class="voice-mic-circle">
-                  <i class="fa fa-microphone"></i>
+   <!-- Interactive Voice Search Modal Overlay -->
+   <div id="voice_search_modal" class="voice-modal-overlay">
+      <div class="voice-modal-card">
+         <button id="close_voice_modal" class="close-modal-btn" title="Close"><i class="fa fa-times"></i></button>
+         <div class="voice-wave-container">
+            <div class="voice-ripple r1"></div>
+            <div class="voice-ripple r2"></div>
+            <div class="voice-ripple r3"></div>
+            <div class="voice-mic-circle">
+               <i class="fa fa-microphone"></i>
+            </div>
+         </div>
+         <h3 id="voice_status_heading">Listening...</h3>
+         <p id="voice_transcript" class="voice-transcript">Speak now: "Play Kesariya", "Arijit Singh", "Lofi
+            Beats"...</p>
+         <div class="voice-modal-hints">
+            <span>Quick commands:</span>
+            <button class="voice-hint-chip" data-speak="Play Kesariya">"Play Kesariya"</button>
+            <button class="voice-hint-chip" data-speak="A.R. Rahman Hits">"A.R. Rahman"</button>
+            <button class="voice-hint-chip" data-speak="Telugu Workout Songs">"Telugu Workout"</button>
+         </div>
+      </div>
+   </div>
+
+   <!-- Floating AI DJ Chat Widget Launcher -->
+   <button id="floating_chat_btn" class="floating-chat-btn" title="Chat with Sangeetham AI">
+      <i class="fa-solid fa-brain"></i>
+      <span class="floating-chat-label">AI Search</span>
+      <span class="floating-pulse-ring"></span>
+   </button>
+
+   <!-- Modern PWA Add to Home Screen Slide-up Banner -->
+   <div id="pwa_install_banner" class="pwa-install-banner">
+      <div class="pwa-banner-content">
+         <img src="icons/icon-192.png" alt="Sangeetham App Icon" class="pwa-banner-icon">
+         <div class="pwa-banner-text">
+            <h4>Install Sangeetham</h4>
+            <p>Add to home screen for fast offline playback & instant access</p>
+         </div>
+      </div>
+      <div class="pwa-banner-actions">
+         <button id="pwa_banner_install_btn" class="pwa-banner-install-btn">
+            <i class="fa-solid fa-download"></i> Add to Home Screen
+         </button>
+         <button id="pwa_banner_close_btn" class="pwa-banner-close-btn" title="Dismiss">
+            <i class="fa-solid fa-xmark"></i>
+         </button>
+      </div>
+   </div>
+
+   <!-- iOS Safari Add to Home Screen Guide Modal -->
+   <div id="pwa_ios_modal" class="modal-overlay">
+      <div class="modal-card pwa-ios-card">
+         <div class="modal-header">
+            <div class="modal-title-box">
+               <img src="icons/icon-192.png" alt="Sangeetham App Icon" class="pwa-modal-app-icon">
+               <div>
+                  <h3>Install on iPhone / iPad</h3>
+                  <p>Add Sangeetham to your iOS Home Screen</p>
                </div>
             </div>
-            <h3 id="voice_status_heading">Listening...</h3>
-            <p id="voice_transcript" class="voice-transcript">Speak now: "Play Kesariya", "Arijit Singh", "Lofi
-               Beats"...</p>
-            <div class="voice-modal-hints">
-               <span>Quick commands:</span>
-               <button class="voice-hint-chip" data-speak="Play Kesariya">"Play Kesariya"</button>
-               <button class="voice-hint-chip" data-speak="A.R. Rahman Hits">"A.R. Rahman"</button>
-               <button class="voice-hint-chip" data-speak="Telugu Workout Songs">"Telugu Workout"</button>
+            <button id="close_ios_pwa_modal" class="close-modal-btn"><i class="fa fa-times"></i></button>
+         </div>
+         <div class="pwa-ios-instructions">
+            <div class="pwa-step-item">
+               <div class="pwa-step-num">1</div>
+               <div class="pwa-step-info">
+                  <p>Tap the <strong>Share</strong> button <i
+                        class="fa-solid fa-arrow-up-from-bracket pwa-highlight-icon"></i> in Safari's bottom toolbar.
+                  </p>
+               </div>
             </div>
+            <div class="pwa-step-item">
+               <div class="pwa-step-num">2</div>
+               <div class="pwa-step-info">
+                  <p>Scroll down and tap <strong>'Add to Home Screen'</strong> <i
+                        class="fa-solid fa-square-plus pwa-highlight-icon"></i>.</p>
+               </div>
+            </div>
+            <div class="pwa-step-item">
+               <div class="pwa-step-num">3</div>
+               <div class="pwa-step-info">
+                  <p>Tap <strong>'Add'</strong> in the top right corner to enjoy fullscreen music! 🎵</p>
+               </div>
+            </div>
+         </div>
+         <button id="got_it_ios_btn" class="submit-modal-btn">Got It!</button>
+      </div>
+   </div>
+
+   <!-- Interactive Toast Notification -->
+   <div id="app_toast" class="toast-notification">
+      <i class="fa fa-check-circle toast-icon"></i>
+      <span id="toast_text">Notification</span>
+   </div>
+
+   <div id="container" class="audio-container-canvas">
+      <div class="player-meta-container">
+         <img id="player_thumb" class="player-thumb"
+            src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80"
+            alt="Track Cover">
+         <div class="player-text">
+            <h1 id="playlist_status">Select a track to start playback</h1>
          </div>
       </div>
 
-      <!-- Floating AI DJ Chat Widget Launcher -->
-      <button id="floating_chat_btn" class="floating-chat-btn" title="Chat with Sangeetham AI">
-         <i class="fa-solid fa-brain"></i>
-         <span class="floating-chat-label">AI Search</span>
-         <span class="floating-pulse-ring"></span>
-      </button>
-
-      <!-- Modern PWA Add to Home Screen Slide-up Banner -->
-      <div id="pwa_install_banner" class="pwa-install-banner">
-         <div class="pwa-banner-content">
-            <img src="icons/icon-192.png" alt="Sangeetham App Icon" class="pwa-banner-icon">
-            <div class="pwa-banner-text">
-               <h4>Install Sangeetham</h4>
-               <p>Add to home screen for fast offline playback & instant access</p>
+      <!-- Single-Line Animated Synced Lyric Bar in Player Dock -->
+      <div id="player_lyric_bar" class="player-lyric-bar" title="Click to open full karaoke lyrics">
+         <div class="player-lyric-badge">
+            <i class="fa fa-quote-left lyric-quote-icon"></i>
+            <div class="lyric-eq-bars" id="player_lyric_eq">
+               <span class="eq-bar bar-1"></span>
+               <span class="eq-bar bar-2"></span>
+               <span class="eq-bar bar-3"></span>
             </div>
          </div>
-         <div class="pwa-banner-actions">
-            <button id="pwa_banner_install_btn" class="pwa-banner-install-btn">
-               <i class="fa-solid fa-download"></i> Add to Home Screen
-            </button>
-            <button id="pwa_banner_close_btn" class="pwa-banner-close-btn" title="Dismiss">
-               <i class="fa-solid fa-xmark"></i>
-            </button>
+         <div class="player-lyric-viewport">
+            <div id="player_lyric_text" class="player-lyric-text">♪ Sangeetham Live Lyrics</div>
+         </div>
+         <div class="player-lyric-tag">
+            <span class="lyric-chip"><i class="fa fa-microphone"></i> LIVE</span>
          </div>
       </div>
 
-      <!-- iOS Safari Add to Home Screen Guide Modal -->
-      <div id="pwa_ios_modal" class="modal-overlay">
-         <div class="modal-card pwa-ios-card">
-            <div class="modal-header">
-               <div class="modal-title-box">
-                  <img src="icons/icon-192.png" alt="Sangeetham App Icon" class="pwa-modal-app-icon">
-                  <div>
-                     <h3>Install on iPhone / iPad</h3>
-                     <p>Add Sangeetham to your iOS Home Screen</p>
-                  </div>
-               </div>
-               <button id="close_ios_pwa_modal" class="close-modal-btn"><i class="fa fa-times"></i></button>
-            </div>
-            <div class="pwa-ios-instructions">
-               <div class="pwa-step-item">
-                  <div class="pwa-step-num">1</div>
-                  <div class="pwa-step-info">
-                     <p>Tap the <strong>Share</strong> button <i
-                           class="fa-solid fa-arrow-up-from-bracket pwa-highlight-icon"></i> in Safari's bottom toolbar.
-                     </p>
-                  </div>
-               </div>
-               <div class="pwa-step-item">
-                  <div class="pwa-step-num">2</div>
-                  <div class="pwa-step-info">
-                     <p>Scroll down and tap <strong>'Add to Home Screen'</strong> <i
-                           class="fa-solid fa-square-plus pwa-highlight-icon"></i>.</p>
-                  </div>
-               </div>
-               <div class="pwa-step-item">
-                  <div class="pwa-step-num">3</div>
-                  <div class="pwa-step-info">
-                     <p>Tap <strong>'Add'</strong> in the top right corner to enjoy fullscreen music! 🎵</p>
-                  </div>
-               </div>
-            </div>
-            <button id="got_it_ios_btn" class="submit-modal-btn">Got It!</button>
-         </div>
-      </div>
 
-      <!-- Interactive Toast Notification -->
-      <div id="app_toast" class="toast-notification">
-         <i class="fa fa-check-circle toast-icon"></i>
-         <span id="toast_text">Notification</span>
-      </div>
-
-      <div id="container" class="audio-container-canvas">
-         <div class="player-meta-container">
-            <img id="player_thumb" class="player-thumb"
-               src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80"
-               alt="Track Cover">
-            <div class="player-text">
-               <h1 id="playlist_status">Select a track to start playback</h1>
-            </div>
-         </div>
-
-         <!-- Single-Line Animated Synced Lyric Bar in Player Dock -->
-         <div id="player_lyric_bar" class="player-lyric-bar" title="Click to open full karaoke lyrics">
-            <div class="player-lyric-badge">
-               <i class="fa fa-quote-left lyric-quote-icon"></i>
-               <div class="lyric-eq-bars" id="player_lyric_eq">
-                  <span class="eq-bar bar-1"></span>
-                  <span class="eq-bar bar-2"></span>
-                  <span class="eq-bar bar-3"></span>
-               </div>
-            </div>
-            <div class="player-lyric-viewport">
-               <div id="player_lyric_text" class="player-lyric-text">♪ Sangeetham Live Lyrics</div>
-            </div>
-            <div class="player-lyric-tag">
-               <span class="lyric-chip"><i class="fa fa-microphone"></i> LIVE</span>
-            </div>
-         </div>
-
-
-         <div id="player_btn_container">
-            <button id="shuffle_btn" title="Toggle Shuffle"><i class="fa fa-random"></i></button>
-            <button id="prev-s" title="Previous Track"><i class="fa fa-angle-left"></i></button>
-            <button id="playpausebtn" class="play" title="Play/Pause"><i class="fa fa-play"></i><i
-                  class="fa fa-pause"></i></button>
-            <button id="next-s" title="Next Track"><i class="fa fa-angle-right"></i></button>
-            <button id="loop_btn" title="Toggle Loop"><i class="fa fa-repeat"></i></button>
-            <!--   <button id="lyrics_btn" class="lyrics-control-btn" title="Toggle Synced Lyrics Overlay"><i
+      <div id="player_btn_container">
+         <button id="shuffle_btn" title="Toggle Shuffle"><i class="fa fa-random"></i></button>
+         <button id="prev-s" title="Previous Track"><i class="fa fa-angle-left"></i></button>
+         <button id="playpausebtn" class="play" title="Play/Pause"><i class="fa fa-play"></i><i
+               class="fa fa-pause"></i></button>
+         <button id="next-s" title="Next Track"><i class="fa fa-angle-right"></i></button>
+         <button id="loop_btn" title="Toggle Loop"><i class="fa fa-repeat"></i></button>
+         <!--   <button id="lyrics_btn" class="lyrics-control-btn" title="Toggle Synced Lyrics Overlay"><i
                   class="fa fa-quote-right"></i> Lyrics</button>
             
             <select id="style_select" class="style-select" title="Choose Visualizer Style">
@@ -630,37 +629,37 @@
                <option value="ocean">🌊 Ocean Breeze</option>
             </select> -->
 
-            <div class="sens-control" title="Visualizer Sensitivity">
-               <i class="fa fa-bolt"></i>
-               <input id="sensitivity_slider" type="range" min="0.5" max="2.5" value="1.0" step="0.1">
-            </div>
+         <div class="sens-control" title="Visualizer Sensitivity">
+            <i class="fa fa-bolt"></i>
+            <input id="sensitivity_slider" type="range" min="0.5" max="2.5" value="1.0" step="0.1">
+         </div>
 
-            <!-- <button id="visualizer_toggle" class="glow-btn viz-toggle-btn" title="Toggle Visualizer">
+         <!-- <button id="visualizer_toggle" class="glow-btn viz-toggle-btn" title="Toggle Visualizer">
                <i class="fa-brands fa-soundcloud"></i></button> -->
 
-            <!-- <button id="glow_toggle" class="glow-btn" title="Toggle Beat Glow"><i class="fa fa-sun-o"></i></button> -->
+         <!-- <button id="glow_toggle" class="glow-btn" title="Toggle Beat Glow"><i class="fa fa-sun-o"></i></button> -->
 
-            <input id="seekslider" type="range" min="0" max="500" value="0" step="1">
-            <div id="timebox">
-               <span id="current_time">00:00</span>| <span id="duration_time">00:00</span>
-            </div>
-            <div class="volume-control-wrapper" id="volume_control_wrapper">
-               <button id="mutebtn" class="volume" title="Volume Controls"><i class="fa fa-volume-up"></i><i
-                     class="fa fa-volume-off"></i></button>
-               <div id="volume_popup" class="volume-popup">
-                  <span id="volume_val_badge" class="volume-val-badge">100%</span>
-                  <div class="volume-slider-track-wrap">
-                     <input id="volumeslider" type="range" min="0" max="100" value="100" step="1" orient="vertical">
-                  </div>
-                  <button id="quick_mute_btn" class="quick-mute-btn" title="Quick Mute / Unmute"><i
-                        class="fa fa-volume-up"></i></button>
+         <input id="seekslider" type="range" min="0" max="500" value="0" step="1">
+         <div id="timebox">
+            <span id="current_time">00:00</span>| <span id="duration_time">00:00</span>
+         </div>
+         <div class="volume-control-wrapper" id="volume_control_wrapper">
+            <button id="mutebtn" class="volume" title="Volume Controls"><i class="fa fa-volume-up"></i><i
+                  class="fa fa-volume-off"></i></button>
+            <div id="volume_popup" class="volume-popup">
+               <span id="volume_val_badge" class="volume-val-badge">100%</span>
+               <div class="volume-slider-track-wrap">
+                  <input id="volumeslider" type="range" min="0" max="100" value="100" step="1" orient="vertical">
                </div>
+               <button id="quick_mute_btn" class="quick-mute-btn" title="Quick Mute / Unmute"><i
+                     class="fa fa-volume-up"></i></button>
             </div>
          </div>
       </div>
-      <div id="mp3_player" class="visualizer-hidden">
-         <canvas id="analyser_render"></canvas>
-      </div>
+   </div>
+   <div id="mp3_player" class="visualizer-hidden">
+      <canvas id="analyser_render"></canvas>
+   </div>
 
    </div>
 
