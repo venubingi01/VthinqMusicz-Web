@@ -17,7 +17,9 @@
    <link
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
       rel="stylesheet">
-   <link href="font-awesome/css/font-awesome.min.css" rel="stylesheet">
+   <link href="font-awesome/css/all.min.css" rel="stylesheet">
+   <link href="font-awesome/css/v4-shims.min.css" rel="stylesheet">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
    <link rel="stylesheet" href="css/icons.min.css">
    <link href="css/style.css?v=11" rel="stylesheet" type="text/css">
    <link rel="icon"
@@ -55,9 +57,7 @@
                <ul class="header-action-list">
                   <li title="Home" class="nav-icon active" data-tab="home"><i class="fa fa-home"></i></li>
                   <li title="Search" class="nav-icon" data-tab="search"><i class="fa fa-search"></i></li>
-                  <li title="AI DJ Chat" class="nav-icon ai-chat-nav-btn" data-tab="ai_chat"><i
-                        class="fa-solid fa-message-bot"></i>
-                  </li>
+
                   <li id="top_funding_btn" class="sponsor-chip" title="Developer Profile & Support"><i
                         class="fa fa-user"></i></li>
                </ul>
@@ -70,7 +70,7 @@
                   <div class="col active" data-tab="home"><i class="fa fa-home"></i> Home</div>
                   <div class="col" data-tab="motivational"><i class="fa fa-fire"></i> Motivational</div>
                   <div class="col" data-tab="deep_focus"><i class="fa fa-headphones"></i> Deep Focus</div>
-                  <div class="col" data-tab="ai_chat"><i class="fa fa-magic"></i> AI DJ Chat</div>
+                  <div class="col" data-tab="ai_chat"><i class="fa-solid fa-brain"></i> AI DJ Chat</div>
                   <div class="col" data-tab="lyrics"><i class="fa fa-quote-right"></i> Lyrics</div>
                   <div class="clear"></div>
                </div>
@@ -168,7 +168,11 @@
                      </div>
                      <div class="chat-bot-info">
                         <h2>Sangeetham AI DJ</h2>
-                        <p><i class="fa fa-circle online-dot"></i> Online • Intelligent Music Recommendation & DJ</p>
+                        <p>
+
+                           <i class="fa-brands fa-deezer"></i>
+                           Online • Intelligent Music Recommendation & DJ
+                        </p>
                      </div>
                   </div>
                   <div class="chat-actions">
@@ -206,8 +210,9 @@
                      <input type="text" id="chat_input"
                         placeholder="Ask AI DJ: 'Play upbeat pop', 'Sad Telugu songs', 'Recommend songs like Temper'..."
                         autocomplete="off">
-                     <button id="chat_voice_btn" class="chat-mic-btn" title="Speak to AI DJ"><i
-                           class="fa fa-microphone"></i></button>
+                     <button id="chat_voice_btn" class="chat-mic-btn" title="Speak to AI DJ">
+                        <i class="fa fa-microphone"></i>
+                     </button>
                      <button id="send_chat_btn" class="chat-send-btn" title="Send Prompt"><i
                            class="fa fa-paper-plane"></i></button>
                   </div>
@@ -386,11 +391,18 @@
 
                   <div class="upi-card">
                      <div class="upi-title">
-                        <i class="fa fa-qrcode"></i> <span>Direct UPI Support (India)</span>
+                        <i class="fa fa-qrcode"></i> <span>Scan & Pay via PhonePe / Any UPI App</span>
+                     </div>
+                     <div class="upi-qr-wrapper">
+                        <img src="images/phonepe_qr.png" alt="PhonePe QR Code - B Venu" class="upi-qr-image"
+                           title="Scan & Pay using PhonePe, Google Pay, Paytm or any UPI App">
+                        <div class="upi-qr-badge">
+                           <i class="fa-solid fa-bolt"></i> Instant UPI Support (B VENU)
+                        </div>
                      </div>
                      <div class="upi-input-group">
-                        <input type="text" id="upi_id_val" value="vthinq@upi" readonly>
-                        <button id="copy_upi_btn" class="copy-upi-btn"><i class="fa fa-copy"></i> Copy</button>
+                        <input type="text" id="upi_id_val" value="bgvenugopal2010@ybl" readonly>
+                        <button id="copy_upi_btn" class="copy-upi-btn"><i class="fa fa-copy"></i> Copy UPI</button>
                      </div>
                   </div>
                </div>
@@ -424,7 +436,7 @@
 
       <!-- Floating AI DJ Chat Widget Launcher -->
       <button id="floating_chat_btn" class="floating-chat-btn" title="Chat with Sangeetham AI DJ">
-         <i class="fa fa-magic"></i>
+         <i class="fa-solid fa-brain"></i>
          <span class="floating-chat-label">AI DJ</span>
          <span class="floating-pulse-ring"></span>
       </button>
@@ -500,8 +512,8 @@
                <input id="sensitivity_slider" type="range" min="0.5" max="2.5" value="1.0" step="0.1">
             </div>
 
-            <button id="visualizer_toggle" class="glow-btn viz-toggle-btn" title="Toggle Visualizer"><i
-                  class="fa fa-bar-chart"></i></button>
+            <button id="visualizer_toggle" class="glow-btn viz-toggle-btn" title="Toggle Visualizer">
+               <i class="fa-brands fa-soundcloud"></i></button>
 
             <!-- <button id="glow_toggle" class="glow-btn" title="Toggle Beat Glow"><i class="fa fa-sun-o"></i></button> -->
 

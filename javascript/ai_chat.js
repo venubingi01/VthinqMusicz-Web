@@ -197,7 +197,7 @@ function initAIChatBot() {
 
 		try {
 			if (typeof SaavnAPI !== "undefined" && SaavnAPI.searchSongs) {
-				var results = await SaavnAPI.searchSongs(searchQuery, 1, 5);
+				var results = await SaavnAPI.searchSongs(searchQuery, 1, 10);
 				removeTypingIndicator();
 
 				if (results && results.length > 0) {

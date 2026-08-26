@@ -106,7 +106,7 @@ var LyricsService = {
 
 // JioSaavn API Service
 var SaavnAPI = {
-	primaryApiUrl: 'https://saavn.sumit.co/api',
+	primaryApiUrl: 'https://sangeetham-api.onrender.com/api',
 	fallbackApiUrl: 'https://saavn.dev/api',
 	secondaryFallbackApiUrl: 'https://jiosaavn-api-2.vercel.app',
 	CIPHER_KEY: "38346591",
@@ -1854,7 +1854,7 @@ function initVoiceSearch(triggerSearchFn) {
 
 	function stopVoiceSearch() {
 		if (recognition && isListening) {
-			try { recognition.stop(); } catch (e) {}
+			try { recognition.stop(); } catch (e) { }
 		}
 		if (voiceModal) voiceModal.classList.remove("active");
 	}
