@@ -1564,7 +1564,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 .lyrics-modal-scroll {
 	height: calc(100vh - 250px);
 	max-height: 560px;
-	overflow-y: hidden;
+	overflow-y: scroll;
 	padding: 40px 30px;
 	text-align: left;
 	/* background: rgba(0, 0, 0, 0.3); */
@@ -1579,7 +1579,15 @@ input[type='range']::-webkit-slider-thumb:hover {
 .lyrics-content-scroll {
 	max-height: 450px;
 	background: transparent;
+	overflow-y: hidden;
+}
 
+.lyrics-content-scroll.no-scroll {
+	max-height: 600px;
+}
+
+.lyrics-content-scroll.no-scroll:hover {
+	overflow-y: scroll;
 }
 
 .lyric-line {
@@ -3510,6 +3518,401 @@ input[type='range']::-webkit-slider-thumb:hover {
 
 	.pwa-banner-install-btn {
 		flex: 1;
+		justify-content: center;
+	}
+}
+
+/* ==========================================================================
+   Album Search & Album View Styling
+   ========================================================================== */
+.search-filter-pills {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	margin-top: 12px;
+}
+
+.search-filter-pill {
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid var(--border-glass);
+	color: var(--text-sub);
+	padding: 6px 16px;
+	border-radius: 20px;
+	font-size: 12px;
+	font-weight: 700;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	transition: all 0.2s ease;
+}
+
+.search-filter-pill:hover {
+	background: rgba(255, 255, 255, 0.12);
+	color: #fff;
+}
+
+.search-filter-pill.active {
+	background: var(--gradient-accent);
+	color: #fff;
+	border-color: transparent;
+	box-shadow: 0 4px 15px rgba(255, 45, 73, 0.4);
+}
+
+.album-badge {
+	background: rgba(103, 58, 183, 0.75) !important;
+}
+
+/* Dedicated Album View Layout */
+.album-view-layout {
+	max-width: 960px;
+	margin: 0 auto;
+	padding: 20px;
+}
+
+.album-header-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 20px;
+}
+
+.album-back-btn,
+.album-share-btn {
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid var(--border-glass);
+	color: #fff;
+	padding: 8px 16px;
+	border-radius: 18px;
+	font-size: 12.5px;
+	font-weight: 700;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	transition: all 0.2s ease;
+}
+
+.album-back-btn:hover,
+.album-share-btn:hover {
+	background: rgba(255, 45, 73, 0.25);
+	border-color: var(--accent-pink);
+	transform: translateY(-1px);
+}
+
+.album-hero {
+	display: flex;
+	align-items: center;
+	gap: 28px;
+	background: var(--bg-glass-card);
+	backdrop-filter: blur(30px);
+	-webkit-backdrop-filter: blur(30px);
+	border: 1px solid var(--border-glass);
+	border-radius: 28px;
+	padding: 26px;
+	margin-bottom: 25px;
+	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.album-cover-wrapper {
+	position: relative;
+	width: 180px;
+	height: 180px;
+	flex-shrink: 0;
+}
+
+.album-cover-glow {
+	position: absolute;
+	inset: -12px;
+	background-size: cover;
+	background-position: center;
+	border-radius: 26px;
+	filter: blur(25px);
+	opacity: 0.6;
+	z-index: 1;
+}
+
+.album-hero-cover {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	border-radius: 20px;
+	object-fit: cover;
+	z-index: 2;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+.album-hero-meta {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+}
+
+.album-type-badge {
+	align-self: flex-start;
+	background: rgba(255, 45, 73, 0.18);
+	border: 1px solid rgba(255, 45, 73, 0.4);
+	color: #ff6b8a;
+	padding: 4px 10px;
+	border-radius: 10px;
+	font-size: 10.5px;
+	font-weight: 800;
+	letter-spacing: 0.5px;
+}
+
+.album-hero-meta h1 {
+	font-size: 26px;
+	font-weight: 800;
+	color: #fff;
+	line-height: 1.25;
+}
+
+.album-hero-meta p {
+	font-size: 14px;
+	color: var(--text-sub);
+	font-weight: 600;
+}
+
+.album-extra-info {
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+.album-action-buttons {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-top: 10px;
+}
+
+.album-play-btn {
+	background: var(--gradient-accent);
+	color: #fff;
+	border: none;
+	outline: none;
+	padding: 10px 22px;
+	border-radius: 20px;
+	font-size: 13px;
+	font-weight: 800;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	box-shadow: 0 4px 15px rgba(255, 45, 73, 0.4);
+	transition: all 0.2s ease;
+}
+
+.album-play-btn:hover {
+	transform: scale(1.04);
+	box-shadow: 0 6px 20px rgba(255, 45, 73, 0.6);
+}
+
+.album-secondary-btn {
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid var(--border-glass);
+	color: #fff;
+	padding: 10px 18px;
+	border-radius: 20px;
+	font-size: 13px;
+	font-weight: 700;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	transition: all 0.2s ease;
+}
+
+.album-secondary-btn:hover {
+	background: rgba(255, 255, 255, 0.15);
+}
+
+/* Album Tracklist */
+.album-tracklist-container {
+	background: var(--bg-glass-card);
+	backdrop-filter: blur(25px);
+	-webkit-backdrop-filter: blur(25px);
+	border: 1px solid var(--border-glass);
+	border-radius: 24px;
+	padding: 20px;
+}
+
+.tracklist-heading h3 {
+	font-size: 15px;
+	font-weight: 800;
+	color: #fff;
+	margin-bottom: 15px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.album-songs-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.album-track-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background: rgba(255, 255, 255, 0.03);
+	border: 1px solid transparent;
+	border-radius: 14px;
+	padding: 10px 14px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.album-track-row:hover {
+	background: rgba(255, 255, 255, 0.08);
+	border-color: var(--border-glass);
+	transform: translateX(4px);
+}
+
+.album-track-row.active {
+	background: rgba(255, 45, 73, 0.15);
+	border-color: var(--accent-pink);
+}
+
+.track-left-group {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	min-width: 0;
+}
+
+.track-index {
+	font-size: 13px;
+	font-weight: 800;
+	color: var(--text-muted);
+	width: 20px;
+	text-align: center;
+}
+
+.album-track-row.active .track-index {
+	color: var(--accent-pink);
+}
+
+.track-row-thumb {
+	width: 42px;
+	height: 42px;
+	border-radius: 10px;
+	object-fit: cover;
+	flex-shrink: 0;
+}
+
+.track-row-info {
+	min-width: 0;
+}
+
+.track-row-title {
+	font-size: 13.5px;
+	font-weight: 700;
+	color: #fff;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.track-row-artist {
+	font-size: 11.5px;
+	color: var(--text-sub);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.track-right-group {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	flex-shrink: 0;
+}
+
+.track-duration {
+	font-size: 12px;
+	color: var(--text-muted);
+	font-family: monospace;
+}
+
+.track-play-btn {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid var(--border-glass);
+	color: #fff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 11px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.album-track-row:hover .track-play-btn,
+.album-track-row.active .track-play-btn {
+	background: var(--gradient-accent);
+	border-color: transparent;
+	box-shadow: 0 2px 10px rgba(255, 45, 73, 0.4);
+}
+
+/* Lyrics Share Button & Controls Group */
+.lyrics-controls-group {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: 10px;
+	flex-wrap: wrap;
+}
+
+.lyrics-share-action-btn {
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid var(--border-glass);
+	color: #fff;
+	padding: 6px 14px;
+	border-radius: 20px;
+	font-size: 12px;
+	font-weight: 700;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	transition: all 0.2s ease;
+}
+
+.lyrics-share-action-btn:hover {
+	background: var(--gradient-accent);
+	border-color: transparent;
+	box-shadow: 0 4px 15px rgba(255, 45, 73, 0.4);
+	transform: translateY(-2px);
+}
+
+@media screen and (max-width: 680px) {
+	.album-hero {
+		flex-direction: column;
+		text-align: center;
+		padding: 20px 15px;
+		gap: 16px;
+	}
+
+	.album-hero-meta {
+		align-items: center;
+	}
+
+	.album-cover-wrapper {
+		width: 140px;
+		height: 140px;
+	}
+
+	.album-hero-meta h1 {
+		font-size: 20px;
+	}
+
+	.album-action-buttons {
 		justify-content: center;
 	}
 }

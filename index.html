@@ -25,11 +25,11 @@
    <link href="font-awesome/css/v4-shims.min.css" rel="stylesheet">
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
    <link rel="stylesheet" href="css/icons.min.css">
-   <link href="css/style.css?v=11" rel="stylesheet" type="text/css">
+   <link href="css/style.css?v=13" rel="stylesheet" type="text/css">
    <script type="text/javascript" src="javascript/crypto-js.min.js"></script>
-   <script type="text/javascript" src="javascript/audio_player.js?v=11"></script>
-   <script type="text/javascript" src="javascript/ai_chat.js?v=1"></script>
-   <script type="text/javascript" src="javascript/pwa_install.js?v=1"></script>
+   <script type="text/javascript" src="javascript/audio_player.js?v=13"></script>
+   <script type="text/javascript" src="javascript/ai_chat.js?v=3"></script>
+   <script type="text/javascript" src="javascript/pwa_install.js?v=3"></script>
    <script>
       if ('serviceWorker' in navigator) {
          window.addEventListener('load', function () {
@@ -60,7 +60,8 @@
                <ul class="header-action-list">
                   <li title="Home" class="nav-icon active" data-tab="home"><i class="fa fa-home"></i></li>
                   <li title="Search" class="nav-icon" data-tab="search"><i class="fa fa-search"></i></li>
-                  <li id="header_install_btn" class="install-pwa-chip" title="Add Sangeetham to Home Screen" style="display: none;">
+                  <li id="header_install_btn" class="install-pwa-chip" title="Add Sangeetham to Home Screen"
+                     style="display: none;">
                      <i class="fa-solid fa-download"></i> <span>Install</span>
                   </li>
                   <li id="top_funding_btn" class="sponsor-chip" title="Developer Profile & Support"><i
@@ -73,9 +74,8 @@
             <div class="container">
                <div class="header nav-tabs">
                   <div class="col active" data-tab="home"><i class="fa fa-home"></i> <span>Home</span></div>
-                  <div class="col" data-tab="motivational"><i class="fa fa-fire"></i> <span>Motivational</span></div>
-                  <div class="col" data-tab="deep_focus"><i class="fa fa-headphones"></i> <span>Deep Focus</span></div>
-                  <div class="col" data-tab="ai_chat"><i class="fa-solid fa-brain"></i> <span>AI DJ Chat</span></div>
+                  <div class="col" data-tab="search"><i class="fa fa-search"></i> <span>Search</span></div>
+                  <div class="col" data-tab="ai_chat"><i class="fa-solid fa-brain"></i> <span>Sangeetham AI</span></div>
                   <div class="col" data-tab="lyrics"><i class="fa fa-quote-right"></i> <span>Lyrics</span></div>
                   <div class="clear"></div>
                </div>
@@ -154,10 +154,62 @@
                      <span class="chip" data-query="Anirudh"><i class="fa fa-bolt"></i> Anirudh</span>
                      <span class="chip" data-query="Sid Sriram"><i class="fa fa-heart"></i> Sid Sriram</span>
                   </div>
+                  <!-- Search Filter Type (Songs vs Albums) -->
+                  <div class="search-filter-pills" id="search_filter_pills">
+                     <button class="search-filter-pill active" data-search-type="songs"><i
+                           class="fa-solid fa-music"></i> Songs</button>
+                     <button class="search-filter-pill" data-search-type="albums"><i
+                           class="fa-solid fa-compact-disc"></i> Albums</button>
+                  </div>
                </div>
                <div id="songslistcon">
                   <div class="no-songs">Use the search box above, try voice search, or tap a tag to discover millions of
-                     songs.</div>
+                     songs & albums.</div>
+               </div>
+            </div>
+         </div>
+
+         <!-- Dedicated Album View Screen -->
+         <div id="album_view" class="view-screen">
+            <div class="innerscreen album-view-layout">
+               <div class="album-header-bar">
+                  <button id="album_back_btn" class="album-back-btn" title="Back to Search"><i
+                        class="fa fa-arrow-left"></i> Back</button>
+                  <button id="share_album_btn" class="album-share-btn" title="Share Album Link"><i
+                        class="fa-solid fa-share-nodes"></i> Share Album</button>
+               </div>
+               <div class="album-hero">
+                  <div class="album-cover-wrapper">
+                     <div class="album-cover-glow" id="album_cover_glow"></div>
+                     <img id="album_hero_cover" class="album-hero-cover"
+                        src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80"
+                        alt="Album Cover">
+                  </div>
+                  <div class="album-hero-meta">
+                     <span class="album-type-badge"><i class="fa-solid fa-compact-disc"></i> ALBUM</span>
+                     <h1 id="album_hero_title">Album Name</h1>
+                     <p id="album_hero_artists">Primary Artists</p>
+                     <div class="album-extra-info">
+                        <span id="album_hero_year">2024</span> •
+                        <span id="album_hero_count">0 Songs</span> •
+                        <span id="album_hero_lang">TELUGU</span>
+                     </div>
+                     <div class="album-action-buttons">
+                        <button id="album_play_all_btn" class="album-play-btn"><i class="fa fa-play"></i> Play
+                           All</button>
+                        <button id="album_shuffle_btn" class="album-secondary-btn"><i class="fa fa-random"></i>
+                           Shuffle</button>
+                     </div>
+                  </div>
+               </div>
+               <div class="album-tracklist-container">
+                  <div class="tracklist-heading">
+                     <h3><i class="fa-solid fa-list-ol"></i> Album Tracklist</h3>
+                  </div>
+                  <div id="album_songs_list" class="album-songs-list">
+                     <div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Loading album songs...
+                     </div>
+                  </div>
                </div>
             </div>
          </div>
@@ -172,7 +224,7 @@
                         <span class="online-indicator"></span>
                      </div>
                      <div class="chat-bot-info">
-                        <h2>Sangeetham AI DJ</h2>
+                        <h2>Sangeetham AI</h2>
                         <p>
 
                            <i class="fa-brands fa-deezer"></i>
@@ -213,9 +265,9 @@
                <div class="chat-input-bar">
                   <div class="chat-input-wrapper">
                      <input type="text" id="chat_input"
-                        placeholder="Ask AI DJ: 'Play upbeat pop', 'Sad Telugu songs', 'Recommend songs like Temper'..."
+                        placeholder="Ask AI: 'Play upbeat pop', 'Sad Telugu songs', 'Recommend songs like Temper'..."
                         autocomplete="off">
-                     <button id="chat_voice_btn" class="chat-mic-btn" title="Speak to AI DJ">
+                     <button id="chat_voice_btn" class="chat-mic-btn" title="Speak to AI">
                         <i class="fa fa-microphone"></i>
                      </button>
                      <button id="send_chat_btn" class="chat-send-btn" title="Send Prompt"><i
@@ -241,17 +293,17 @@
                      <h2 id="lyrics_title">No Track Selected</h2>
                      <p id="lyrics_artist">Select a song to load real-time synced lyrics</p>
                      <div class="lyrics-badges-row">
-
-
-                        <!-- <span class="lyrics-live-badge"><i class="fa fa-bolt"></i> Karaoke Live Sync</span>
-                        <span id="lyrics_source_badge" class="lyrics-source-tag"><i class="fa fa-music"></i> LRCLIB
-                           Engine</span> -->
                      </div>
                   </div>
 
-                  <div class="lyrics-live-badge" id="visualizer_toggle"><i class="fa-brands fa-soundcloud"></i>
-                     <span>Visualizer</span>
-                     <span class="floating-pulse-ring"></span>
+                  <div class="lyrics-controls-group">
+                     <div class="lyrics-live-badge" id="visualizer_toggle"><i class="fa-brands fa-soundcloud"></i>
+                        <span>Visualizer</span>
+                        <span class="floating-pulse-ring"></span>
+                     </div>
+                     <button id="share_lyrics_btn" class="lyrics-share-action-btn" title="Share Live Lyrics Link">
+                        <i class="fa-solid fa-share-nodes"></i> <span>Share Lyrics</span>
+                     </button>
                   </div>
                </div>
 
@@ -450,9 +502,9 @@
       </div>
 
       <!-- Floating AI DJ Chat Widget Launcher -->
-      <button id="floating_chat_btn" class="floating-chat-btn" title="Chat with Sangeetham AI DJ">
+      <button id="floating_chat_btn" class="floating-chat-btn" title="Chat with Sangeetham AI">
          <i class="fa-solid fa-brain"></i>
-         <span class="floating-chat-label">AI DJ</span>
+         <span class="floating-chat-label">AI Search</span>
          <span class="floating-pulse-ring"></span>
       </button>
 
@@ -492,13 +544,16 @@
                <div class="pwa-step-item">
                   <div class="pwa-step-num">1</div>
                   <div class="pwa-step-info">
-                     <p>Tap the <strong>Share</strong> button <i class="fa-solid fa-arrow-up-from-bracket pwa-highlight-icon"></i> in Safari's bottom toolbar.</p>
+                     <p>Tap the <strong>Share</strong> button <i
+                           class="fa-solid fa-arrow-up-from-bracket pwa-highlight-icon"></i> in Safari's bottom toolbar.
+                     </p>
                   </div>
                </div>
                <div class="pwa-step-item">
                   <div class="pwa-step-num">2</div>
                   <div class="pwa-step-info">
-                     <p>Scroll down and tap <strong>'Add to Home Screen'</strong> <i class="fa-solid fa-square-plus pwa-highlight-icon"></i>.</p>
+                     <p>Scroll down and tap <strong>'Add to Home Screen'</strong> <i
+                           class="fa-solid fa-square-plus pwa-highlight-icon"></i>.</p>
                   </div>
                </div>
                <div class="pwa-step-item">

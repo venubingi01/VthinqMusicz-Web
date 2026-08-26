@@ -64,10 +64,28 @@ var LyricsService = {
 			console.warn("Lyrics secondary fetch error:", e2);
 		}
 
+		// 3. Tertiary fallback: with artist and song fetch with timestamp false
+		try {
+			var url3 = this.baseUrl + "?artist=" + encodeURIComponent(cleanArtist) + "&song=" + encodeURIComponent(cleanTitle) + "&timestamps=false";
+			var res3 = await fetch(url3);
+			if (res3.ok) {
+				var data3 = await res3.json();
+				if (data3 && data3.status === "success" && data3.data) {
+					this.cache[cacheKey] = data3.data;
+					data3.data.timestamps = false;
+					return data3.data;
+				}
+			}
+		} catch (e3) {
+			console.warn("Lyrics tertiary fetch error:", e3);
+		}
+
+
 		return null;
 	},
 
 	parseLrcText: function (lrcText) {
+		console.log('lyrics', lrcText);
 		if (!lrcText) return [];
 		var lines = lrcText.split("\n");
 		var result = [];
@@ -135,9 +153,23 @@ var SaavnAPI = {
 	normalizeSong: function (raw) {
 		if (!raw) return null;
 
-		var id = raw.id || Math.random().toString(36).substring(2);
+		var id = raw.id || raw.albumid || Math.random().toString(36).substring(2);
 		var title = decodeHTMLEntities(raw.name || raw.song || raw.title || "Unknown Track");
-		var artist = decodeHTMLEntities(raw.artists.primary[0].name || raw.primary_artists || raw.singers || raw.artist || raw.music || "Various Artists");
+
+		var artist = "Various Artists";
+		if (raw.artists && raw.artists.primary && Array.isArray(raw.artists.primary) && raw.artists.primary.length > 0 && raw.artists.primary[0].name) {
+			artist = raw.artists.primary.map(function (a) { return a.name; }).join(", ");
+		} else if (raw.primary_artists) {
+			artist = raw.primary_artists;
+		} else if (raw.singers) {
+			artist = raw.singers;
+		} else if (raw.artist) {
+			artist = raw.artist;
+		} else if (raw.music) {
+			artist = raw.music;
+		}
+		artist = decodeHTMLEntities(artist);
+
 		var albumStr = "JioSaavn";
 		if (typeof raw.album === "string") {
 			albumStr = raw.album;
@@ -323,6 +355,108 @@ var SaavnAPI = {
 		}
 
 		return [];
+	},
+
+	normalizeAlbum: function (raw) {
+		if (!raw) return null;
+		var id = raw.id || raw.albumid || "";
+		var title = decodeHTMLEntities(raw.name || raw.title || raw.album || "Unknown Album");
+		var year = raw.year || "";
+		var language = raw.language || "";
+		var songCount = raw.song_count || raw.songCount || (raw.songs ? raw.songs.length : (raw.list ? raw.list.length : 0)) || "";
+
+		var artists = "Various Artists";
+		if (raw.artists && raw.artists.primary && Array.isArray(raw.artists.primary) && raw.artists.primary.length > 0) {
+			artists = raw.artists.primary.map(function (a) { return a.name; }).join(", ");
+		} else if (raw.primary_artists) {
+			artists = raw.primary_artists;
+		} else if (raw.singers) {
+			artists = raw.singers;
+		} else if (raw.artist) {
+			artists = raw.artist;
+		} else if (raw.music) {
+			artists = raw.music;
+		}
+		artists = decodeHTMLEntities(artists);
+
+		var coverUrl = "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80";
+		if (raw.image) {
+			if (typeof raw.image === "string") {
+				coverUrl = raw.image.replace("150x150", "500x500").replace("50x50", "500x500");
+			} else if (Array.isArray(raw.image) && raw.image.length > 0) {
+				var highRes = raw.image.find(function (img) { return img.quality === "500x500"; }) || raw.image[raw.image.length - 1];
+				coverUrl = highRes.link || highRes.url || coverUrl;
+			}
+		}
+
+		return {
+			id: id,
+			title: title,
+			artists: artists,
+			year: year,
+			language: language,
+			songCount: songCount,
+			cover: coverUrl,
+			raw: raw
+		};
+	},
+
+	searchAlbums: async function (query, page, limit) {
+		page = page || 1;
+		limit = limit || 15;
+		var self = this;
+		var endpoints = [
+			self.primaryApiUrl + "/search/albums?query=" + encodeURIComponent(query) + "&page=" + page + "&limit=" + limit,
+			self.secondaryFallbackApiUrl + "/search/albums?query=" + encodeURIComponent(query) + "&page=" + page + "&limit=" + limit,
+			self.fallbackApiUrl + "/search/albums?query=" + encodeURIComponent(query) + "&page=" + page + "&limit=" + limit,
+			"https://www.jiosaavn.com/api.php?__call=search.getAlbumResults&_format=json&_marker=0&p=" + page + "&n=" + limit + "&q=" + encodeURIComponent(query)
+		];
+
+		for (var i = 0; i < endpoints.length; i++) {
+			try {
+				var res = await fetch(endpoints[i]);
+				if (res.ok) {
+					var data = await res.json();
+					var list = (data.data && data.data.results) || data.results || data.data || [];
+					if (Array.isArray(list) && list.length > 0) {
+						return list.map(function (item) { return self.normalizeAlbum(item); }).filter(Boolean);
+					}
+				}
+			} catch (err) {
+				console.warn("searchAlbums endpoint error:", endpoints[i], err);
+			}
+		}
+		return [];
+	},
+
+	getAlbumDetails: async function (albumId) {
+		if (!albumId) return null;
+		var self = this;
+		var endpoints = [
+			self.primaryApiUrl + "/albums?id=" + encodeURIComponent(albumId),
+			self.secondaryFallbackApiUrl + "/albums?id=" + encodeURIComponent(albumId),
+			self.fallbackApiUrl + "/albums?id=" + encodeURIComponent(albumId),
+			"https://www.jiosaavn.com/api.php?__call=content.getAlbumDetails&_format=json&albumid=" + encodeURIComponent(albumId)
+		];
+
+		for (var i = 0; i < endpoints.length; i++) {
+			try {
+				var res = await fetch(endpoints[i]);
+				if (res.ok) {
+					var data = await res.json();
+					var albumData = data.data || data;
+					if (albumData && (albumData.name || albumData.title)) {
+						var normalizedAlbum = self.normalizeAlbum(albumData);
+						var rawSongs = albumData.songs || albumData.list || [];
+						normalizedAlbum.songs = rawSongs.map(function (s) { return self.normalizeSong(s); }).filter(Boolean);
+						return normalizedAlbum;
+					}
+				}
+			} catch (err) {
+				console.warn("getAlbumDetails endpoint error:", endpoints[i], err);
+			}
+		}
+		return null;
 	}
 };
 
@@ -763,7 +897,7 @@ async function loadLyricsForCurrentSong() {
 
 	var lyricsData = await LyricsService.fetchLyrics(song.artist, song.title);
 	var timed = [];
-
+	console.log('lyrics', lyricsData);
 	if (lyricsData) {
 		if (Array.isArray(lyricsData.timed_lyrics) && lyricsData.timed_lyrics.length > 0) {
 			timed = lyricsData.timed_lyrics;
@@ -778,6 +912,20 @@ async function loadLyricsForCurrentSong() {
 		updatePlayerSingleLineLyric("♪ " + song.title + " • " + song.artist, false);
 	} else {
 		updatePlayerSingleLineLyric("♪ " + song.title + " • Synced Lyrics Ready", true);
+	}
+
+	if (lyricsData?.hasTimestamps == false) {
+		timed = [];
+
+		// render the lyricsdata.lyrics here]
+		containers.forEach(function (c) {
+			if (!c) return;
+			c.innerHTML = "";
+			c.classList.add("no-scroll");
+			c.innerHTML = '<p class="synced-lyrics">' + lyricsData.lyrics.split("\n").join("<br>") + '</p>';
+		});
+		//updatePlayerSingleLineLyric("♪ " + song.title + " • Synced Lyrics Not Available", false);
+		return;
 	}
 
 	containers.forEach(function (c) {
@@ -1183,7 +1331,8 @@ function frameLooper() {
 }
 
 // Tab navigation & View handling
-function switchTab(tabName) {
+// Tab navigation & View handling with URL Hash Synchronization
+function switchTab(tabName, skipHashUpdate) {
 	activeTab = tabName;
 	var navItems = document.querySelectorAll(".nav-tabs .col, .nav-icon");
 	navItems.forEach(function (el) {
@@ -1194,17 +1343,30 @@ function switchTab(tabName) {
 	var searchView = document.getElementById("search_view");
 	var lyricsView = document.getElementById("lyrics_view");
 	var chatView = document.getElementById("chat_view");
+	var albumView = document.getElementById("album_view");
 
 	if (homeView) homeView.classList.remove("active");
 	if (searchView) searchView.classList.remove("active");
 	if (lyricsView) lyricsView.classList.remove("active");
 	if (chatView) chatView.classList.remove("active");
+	if (albumView) albumView.classList.remove("active");
 
 	if (tabName === "home") {
 		if (homeView) homeView.classList.add("active");
+		if (!skipHashUpdate) updateUrlHash("home");
 	} else if (tabName === "lyrics") {
 		if (lyricsView) lyricsView.classList.add("active");
 		loadLyricsForCurrentSong();
+		if (!skipHashUpdate) {
+			var cur = playlist && playlist[playlist_index];
+			if (cur && cur.title) {
+				updateUrlHash("lyrics", { song: cur.title, artist: cur.artist });
+			} else {
+				updateUrlHash("lyrics");
+			}
+		}
+	} else if (tabName === "album") {
+		if (albumView) albumView.classList.add("active");
 	} else if (tabName === "ai_chat") {
 		if (chatView) {
 			chatView.classList.add("active");
@@ -1213,6 +1375,7 @@ function switchTab(tabName) {
 				setTimeout(function () { chatInput.focus(); }, 150);
 			}
 		}
+		if (!skipHashUpdate) updateUrlHash("ai_chat");
 	} else {
 		if (searchView) searchView.classList.add("active");
 
@@ -1225,21 +1388,25 @@ function switchTab(tabName) {
 				playlist = homeFeeds.latest;
 				renderSongsList(playlist);
 			}
+			if (!skipHashUpdate) updateUrlHash("latest");
 		} else if (tabName === "motivational") {
 			if (viewTitle) viewTitle.innerHTML = '<i class="fa fa-fire section-icon"></i> Motivational Songs';
 			if (homeFeeds.motivational.length > 0) {
 				playlist = homeFeeds.motivational;
 				renderSongsList(playlist);
 			}
+			if (!skipHashUpdate) updateUrlHash("motivational");
 		} else if (tabName === "deep_focus") {
 			if (viewTitle) viewTitle.innerHTML = '<i class="fa fa-headphones section-icon"></i> Deep Focus Songs';
 			if (homeFeeds.deep_focus.length > 0) {
 				playlist = homeFeeds.deep_focus;
 				renderSongsList(playlist);
 			}
+			if (!skipHashUpdate) updateUrlHash("deep_focus");
 		} else if (tabName === "search") {
 			if (viewTitle) viewTitle.textContent = "Search Music";
 			if (songSearch) songSearch.focus();
+			if (!skipHashUpdate) updateUrlHash("search");
 		}
 	}
 }
@@ -1364,6 +1531,21 @@ function initAudioPlayer() {
 		});
 	}
 
+	// Search Type (songs vs albums)
+	var currentSearchType = "songs";
+	var searchFilterPills = document.querySelectorAll(".search-filter-pill");
+	searchFilterPills.forEach(function (pill) {
+		pill.addEventListener("click", function () {
+			searchFilterPills.forEach(function (p) { p.classList.remove("active"); });
+			this.classList.add("active");
+			currentSearchType = this.getAttribute("data-search-type") || "songs";
+			var q = songSearch ? songSearch.value.trim() : "";
+			if (q) {
+				triggerSearch(q);
+			}
+		});
+	});
+
 	// Live Search Input with Debouncing
 	var songSearch = document.getElementById("song_search");
 	var clearSearchBtn = document.getElementById("clear_search_btn");
@@ -1385,19 +1567,29 @@ function initAudioPlayer() {
 
 		var songsContainer = document.getElementById("songslistcon");
 		if (songsContainer) {
-			songsContainer.innerHTML = '<div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Searching JioSaavn for "' + q + '"...</div>';
+			songsContainer.innerHTML = '<div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Searching JioSaavn for ' + currentSearchType + ' "' + q + '"...</div>';
 		}
 
 		searchDebounceTimer = setTimeout(async function () {
-			var searchResults = await SaavnAPI.searchSongs(q, 1, 20);
-			if (searchResults.length > 0) {
-				playlist = searchResults;
-				renderSongsList(playlist);
-			} else if (songsContainer) {
-				songsContainer.innerHTML = '<div class="no-songs"><i class="fa fa-frown-o"></i> No songs found matching "' + q + '". Try another keyword.</div>';
+			if (currentSearchType === "albums") {
+				var albumResults = await SaavnAPI.searchAlbums(q, 1, 20);
+				if (albumResults.length > 0) {
+					renderAlbumsList(albumResults);
+				} else if (songsContainer) {
+					songsContainer.innerHTML = '<div class="no-songs"><i class="fa-solid fa-compact-disc"></i> No albums found matching "' + q + '". Try another keyword.</div>';
+				}
+			} else {
+				var searchResults = await SaavnAPI.searchSongs(q, 1, 20);
+				if (searchResults.length > 0) {
+					playlist = searchResults;
+					renderSongsList(playlist);
+				} else if (songsContainer) {
+					songsContainer.innerHTML = '<div class="no-songs"><i class="fa-frown-o"></i> No songs found matching "' + q + '". Try another keyword.</div>';
+				}
 			}
 		}, 300);
 	};
+	window.triggerSearchGlobal = triggerSearch;
 
 	if (songSearch) {
 		songSearch.addEventListener("input", function () {
@@ -1425,6 +1617,22 @@ function initAudioPlayer() {
 			}
 		}
 	});
+
+	// Album Back Button Listener
+	var albumBackBtn = document.getElementById("album_back_btn");
+	if (albumBackBtn) {
+		albumBackBtn.addEventListener("click", function () {
+			switchTab("search");
+		});
+	}
+
+	// Share Lyrics Button Listener
+	var shareLyricsBtn = document.getElementById("share_lyrics_btn");
+	if (shareLyricsBtn) {
+		shareLyricsBtn.addEventListener("click", function () {
+			shareCurrentLyrics();
+		});
+	}
 
 	var prevBtn = document.getElementById("prev-s");
 	var nextBtn = document.getElementById("next-s");
@@ -1680,8 +1888,9 @@ function initAudioPlayer() {
 			toast.classList.remove("show");
 		}, 3500);
 	}
+	window.showToast = showToast;
 
-	// Feedback & Funding Modals Handler
+	// Feedback & Funding Modals
 	var feedbackModal = document.getElementById("feedback_modal");
 	var fundingModal = document.getElementById("funding_modal");
 
@@ -1774,7 +1983,267 @@ function initAudioPlayer() {
 
 	// Initialize Voice Search
 	initVoiceSearch(triggerSearch);
+
+	// Initialize URL Hash Deep-Linking
+	setTimeout(handleUrlHashNavigation, 300);
 }
+
+function renderAlbumsList(albumsList) {
+	var songsContainer = document.getElementById("songslistcon");
+	if (!songsContainer) return;
+	songsContainer.innerHTML = "";
+
+	if (!albumsList || albumsList.length === 0) {
+		songsContainer.innerHTML = '<div class="no-songs"><i class="fa-solid fa-compact-disc"></i> No albums found. Try searching for album name or movie title.</div>';
+		return;
+	}
+
+	var grid = document.createElement("div");
+	grid.className = "cards-grid";
+
+	albumsList.forEach(function (album) {
+		var card = document.createElement("div");
+		card.className = "song-card album-card";
+
+		card.innerHTML =
+			'<div class="card-thumb-wrapper">' +
+			'<img class="card-thumb" src="' + album.cover + '" alt="' + album.title + '" loading="lazy">' +
+			'<span class="hd-badge album-badge"><i class="fa-solid fa-compact-disc"></i> ' + (album.songCount ? album.songCount + ' Songs' : 'Album') + '</span>' +
+			'<div class="play-overlay">' +
+			'<div class="play-btn-circle"><i class="fa fa-play"></i></div>' +
+			'</div>' +
+			'</div>' +
+			'<div class="card-title" title="' + album.title + '">' + album.title + '</div>' +
+			'<div class="card-artist" title="' + album.artists + '">' + album.artists + (album.year ? ' • ' + album.year : '') + '</div>';
+
+		card.onclick = function () {
+			openAlbumDetails(album.id);
+		};
+
+		grid.appendChild(card);
+	});
+
+	songsContainer.appendChild(grid);
+}
+
+async function openAlbumDetails(albumId, autoPlay) {
+	if (!albumId) return;
+	switchTab("album", true);
+	updateUrlHash("album", { id: albumId });
+
+	var albumTitleEl = document.getElementById("album_hero_title");
+	var albumArtistsEl = document.getElementById("album_hero_artists");
+	var albumCoverEl = document.getElementById("album_hero_cover");
+	var albumYearEl = document.getElementById("album_hero_year");
+	var albumCountEl = document.getElementById("album_hero_count");
+	var albumLangEl = document.getElementById("album_hero_lang");
+	var albumSongsListEl = document.getElementById("album_songs_list");
+	var albumGlowEl = document.getElementById("album_cover_glow");
+
+	if (albumSongsListEl) {
+		albumSongsListEl.innerHTML = '<div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Loading album tracks...</div>';
+	}
+
+	var album = await SaavnAPI.getAlbumDetails(albumId);
+	if (!album) {
+		if (albumSongsListEl) {
+			albumSongsListEl.innerHTML = '<div class="no-songs"><i class="fa fa-exclamation-triangle"></i> Could not load album details. Please try again.</div>';
+		}
+		return;
+	}
+
+	if (albumTitleEl) albumTitleEl.textContent = album.title;
+	if (albumArtistsEl) albumArtistsEl.textContent = album.artists;
+	if (albumCoverEl) albumCoverEl.src = album.cover;
+	if (albumGlowEl) albumGlowEl.style.backgroundImage = "url('" + album.cover + "')";
+	if (albumYearEl) albumYearEl.textContent = album.year || "2024";
+	if (albumCountEl) albumCountEl.textContent = (album.songs ? album.songs.length : 0) + " Songs";
+	if (albumLangEl) albumLangEl.textContent = album.language ? album.language.toUpperCase() : "MUSIC";
+
+	// Render Tracklist
+	if (albumSongsListEl) {
+		albumSongsListEl.innerHTML = "";
+		if (!album.songs || album.songs.length === 0) {
+			albumSongsListEl.innerHTML = '<div class="no-songs">No songs found in this album.</div>';
+			return;
+		}
+
+		album.songs.forEach(function (song, idx) {
+			var trackRow = document.createElement("div");
+			trackRow.className = "album-track-row";
+			var isActive = (playlist === album.songs && playlist_index === idx);
+			if (isActive) trackRow.classList.add("active");
+
+			trackRow.innerHTML =
+				'<div class="track-left-group">' +
+				'<div class="track-index">' + (idx + 1) + '</div>' +
+				'<img class="track-row-thumb" src="' + (song.cover || album.cover) + '" alt="' + song.title + '">' +
+				'<div class="track-row-info">' +
+				'<div class="track-row-title">' + song.title + '</div>' +
+				'<div class="track-row-artist">' + song.artist + '</div>' +
+				'</div>' +
+				'</div>' +
+				'<div class="track-right-group">' +
+				'<span class="track-duration">' + (song.durationStr || '3:30') + '</span>' +
+				'<button class="track-play-btn" title="Play Track"><i class="fa fa-play"></i></button>' +
+				'</div>';
+
+			trackRow.onclick = function () {
+				playlist = album.songs;
+				playTrackAtIndex(idx);
+				updateAlbumActiveTrack(idx);
+			};
+
+			albumSongsListEl.appendChild(trackRow);
+		});
+	}
+
+	// Play All & Shuffle Buttons
+	var playAllBtn = document.getElementById("album_play_all_btn");
+	if (playAllBtn) {
+		playAllBtn.onclick = function () {
+			if (album.songs && album.songs.length > 0) {
+				playlist = album.songs;
+				playTrackAtIndex(0);
+				updateAlbumActiveTrack(0);
+			}
+		};
+	}
+
+	var shuffleBtn = document.getElementById("album_shuffle_btn");
+	if (shuffleBtn) {
+		shuffleBtn.onclick = function () {
+			if (album.songs && album.songs.length > 0) {
+				var shuffled = album.songs.slice().sort(function () { return 0.5 - Math.random(); });
+				playlist = shuffled;
+				playTrackAtIndex(0);
+				showToast("🔀 Shuffled & playing " + album.title);
+			}
+		};
+	}
+
+	var shareAlbumBtn = document.getElementById("share_album_btn");
+	if (shareAlbumBtn) {
+		shareAlbumBtn.onclick = function () {
+			var shareUrl = window.location.origin + window.location.pathname + "#album?id=" + encodeURIComponent(albumId);
+			if (navigator.share) {
+				navigator.share({
+					title: album.title + " - Sangeetham Music",
+					text: "Listen to " + album.title + " on Sangeetham AI Music Player",
+					url: shareUrl
+				}).catch(function () { });
+			} else {
+				navigator.clipboard.writeText(shareUrl).then(function () {
+					showToast("🔗 Album link copied to clipboard!");
+				}).catch(function () {
+					showToast("Album Link: " + shareUrl);
+				});
+			}
+		};
+	}
+
+	if (autoPlay && album.songs && album.songs.length > 0) {
+		playlist = album.songs;
+		playTrackAtIndex(0);
+	}
+}
+
+function updateAlbumActiveTrack(index) {
+	var rows = document.querySelectorAll(".album-track-row");
+	rows.forEach(function (r, idx) {
+		r.classList.toggle("active", idx === index);
+	});
+}
+
+function updateUrlHash(tabName, params) {
+	var hash = "#" + tabName;
+	if (params) {
+		var queryParts = [];
+		for (var k in params) {
+			if (params[k]) {
+				queryParts.push(encodeURIComponent(k) + "=" + encodeURIComponent(params[k]));
+			}
+		}
+		if (queryParts.length > 0) {
+			hash += "?" + queryParts.join("&");
+		}
+	}
+	history.replaceState(null, "", hash);
+}
+
+function shareCurrentLyrics() {
+	var currentSong = playlist && playlist[playlist_index];
+	if (!currentSong) {
+		showToast("Select or play a song to share its lyrics!");
+		return;
+	}
+	var shareUrl = window.location.origin + window.location.pathname + "#lyrics?song=" + encodeURIComponent(currentSong.title) + "&artist=" + encodeURIComponent(currentSong.artist);
+
+	if (navigator.share) {
+		navigator.share({
+			title: currentSong.title + " - Live Lyrics | Sangeetham",
+			text: "Check out the live synced lyrics for \"" + currentSong.title + "\" on Sangeetham Music Player!",
+			url: shareUrl
+		}).catch(function () { });
+	} else {
+		navigator.clipboard.writeText(shareUrl).then(function () {
+			showToast("🔗 Live Lyrics link copied to clipboard!");
+		}).catch(function () {
+			showToast("Lyrics link: " + shareUrl);
+		});
+	}
+}
+
+async function handleUrlHashNavigation() {
+	var hash = window.location.hash.substring(1);
+	if (!hash) return;
+
+	var parts = hash.split("?");
+	var route = parts[0];
+	var queryStr = parts[1] || "";
+	var params = {};
+
+	if (queryStr) {
+		queryStr.split("&").forEach(function (pair) {
+			var p = pair.split("=");
+			if (p[0]) {
+				params[decodeURIComponent(p[0])] = decodeURIComponent(p[1] || "");
+			}
+		});
+	}
+
+	if (route === "album" && params.id) {
+		openAlbumDetails(params.id, false);
+	} else if (route === "lyrics") {
+		switchTab("lyrics", true);
+		if (params.song) {
+			var currentSong = playlist && playlist[playlist_index];
+			if (!currentSong || currentSong.title.toLowerCase() !== params.song.toLowerCase()) {
+				var query = params.song + (params.artist ? " " + params.artist : "");
+				var searchResults = await SaavnAPI.searchSongs(query, 1, 5);
+				if (searchResults.length > 0) {
+					playDirectSong(searchResults[0]);
+				}
+			} else {
+				loadLyricsForCurrentSong();
+			}
+		} else {
+			loadLyricsForCurrentSong();
+		}
+	} else if (route === "search") {
+		switchTab("search", true);
+		if (params.q) {
+			var songSearch = document.getElementById("song_search");
+			if (songSearch) songSearch.value = params.q;
+			var triggerFn = window.triggerSearchGlobal;
+			if (typeof triggerFn === "function") triggerFn(params.q);
+		}
+	} else if (["home", "ai_chat", "motivational", "deep_focus", "latest"].indexOf(route) !== -1) {
+		switchTab(route, true);
+	}
+}
+
+window.addEventListener("hashchange", handleUrlHashNavigation);
 
 function playDirectSong(song) {
 	if (!song) return;
@@ -1917,5 +2386,3 @@ function initVoiceSearch(triggerSearchFn) {
 }
 
 window.addEventListener("load", initAudioPlayer);
-
-
