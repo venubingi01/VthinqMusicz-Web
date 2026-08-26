@@ -786,6 +786,7 @@ async function loadLyricsForCurrentSong() {
 
 		if (!timed || timed.length === 0) {
 			c.innerHTML = '<div class="no-lyrics-placeholder"><i class="fa fa-info-circle"></i> No synced lyrics found for this track.</div>';
+			hideNoLyricsPlaceholder();
 			return;
 		}
 
@@ -806,6 +807,15 @@ async function loadLyricsForCurrentSong() {
 			c.appendChild(p);
 		});
 	});
+}
+
+function hideNoLyricsPlaceholder() {
+	setTimeout(() => {
+		const noLyricsPlaceholder = document.querySelector('.no-lyrics-placeholder');
+		if (noLyricsPlaceholder) {
+			noLyricsPlaceholder.style.display = 'none';
+		}
+	}, 5000);
 }
 
 function updateSyncedLyrics() {

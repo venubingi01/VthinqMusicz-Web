@@ -76,7 +76,7 @@ body {
 #header {
 	position: relative;
 	z-index: 50;
-	background: rgba(10, 12, 20, 0.85);
+	background: rgba(10, 12, 20, 0.72);
 	backdrop-filter: blur(20px);
 	-webkit-backdrop-filter: blur(20px);
 	border-bottom: 1px solid var(--border-glass);
@@ -231,6 +231,10 @@ body {
 .view-screen {
 	display: none;
 	min-height: 100%;
+}
+
+#lyrics_view {
+	min-height: 78%;
 }
 
 .view-screen.active {
@@ -1181,6 +1185,12 @@ body {
 	opacity: 0;
 }
 
+#visualizer_toggle {
+	position: relative;
+	cursor: pointer;
+}
+
+
 /* Viz-toggle: dimmed/inactive look when visualizer is off */
 #visualizer_toggle:not(.active) {
 	opacity: 0.45;
@@ -1587,28 +1597,35 @@ input[type='range']::-webkit-slider-thumb:hover {
 /* Right Panel: Lyrics Scroll Container */
 .lyrics-right-panel {
 	width: 100%;
+	/* margin-top: 20%; */
+	/* overflow: hidden; */
 }
 
 .lyrics-content-scroll,
 .lyrics-modal-scroll {
 	height: calc(100vh - 250px);
 	max-height: 560px;
-	overflow-y: auto;
+	overflow-y: hidden;
 	padding: 40px 30px;
 	text-align: left;
-	background: rgba(0, 0, 0, 0.3);
-	backdrop-filter: blur(25px);
+	/* background: rgba(0, 0, 0, 0.3); */
+	/* backdrop-filter: blur(25px); */
 	-webkit-backdrop-filter: blur(25px);
-	border: 1px solid var(--border-glass);
+	/* border: 1px solid var(--border-glass); */
 	border-radius: 30px;
 	scroll-behavior: smooth;
-	box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.4);
+	/* box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.4); */
+}
+
+.lyrics-content-scroll {
+	max-height: 450px;
+
 }
 
 .lyric-line {
 	font-size: 20px;
 	font-weight: 700;
-	color: rgba(255, 255, 255, 0.35);
+	color: rgb(255 255 255 / 13%);
 	padding: 14px 20px;
 	margin: 8px 0;
 	border-radius: 18px;
@@ -1616,7 +1633,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 	transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 	line-height: 1.6;
 	letter-spacing: 0.3px;
-	filter: blur(0.4px);
+	filter: blur(0.6px);
 }
 
 .lyric-line:hover {
@@ -1627,18 +1644,22 @@ input[type='range']::-webkit-slider-thumb:hover {
 }
 
 .lyric-line.active {
-	font-size: 26px;
+	font-size: 40px;
 	font-weight: 800;
 	color: #ffffff;
-	background: linear-gradient(135deg, rgba(255, 45, 73, 0.22) 0%, rgba(255, 208, 15, 0.15) 100%);
-	border-left: 5px solid var(--accent-pink);
-	box-shadow: 0 10px 30px rgba(255, 45, 73, 0.25);
 	filter: blur(0);
-	transform: scale(1.03) translateX(8px);
+	transform: scale(1) translateX(-8px);
 	border-radius: 18px;
 	text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 	padding: 18px 24px;
 }
+
+.lyric-line.visualizer {
+	font-size: 40px;
+	transform: scale(0);
+}
+
+
 
 .no-lyrics-placeholder {
 	padding: 60px 20px;
