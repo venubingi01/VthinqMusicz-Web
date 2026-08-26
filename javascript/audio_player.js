@@ -378,7 +378,7 @@ var lastBeatTime = 0;
 
 // Options & Controls
 var visualizerStyles = ["Classic", "Neon Wave", "Peak Caps", "Radial Pulse", "Particle Burst", "Mirror Spectrum"];
-var currentStyleIndex = 0;
+var currentStyleIndex = 4;
 
 var colorThemes = {
 	midnight: {
@@ -515,7 +515,7 @@ function resizeCanvas() {
 
 // Home Page Feeds Loading
 async function loadHomeFeeds() {
-	var latestPromise = SaavnAPI.searchSongs("latest telugu songs", 1, 8);
+	var latestPromise = SaavnAPI.searchSongs("latest tranding hindi songs", 1, 8);
 	var motivationalPromise = SaavnAPI.searchSongs("motivational telugu songs", 1, 8);
 	var deepFocusPromise = SaavnAPI.searchSongs("deep focus study", 1, 8);
 
@@ -699,6 +699,37 @@ function setTrackWithoutAutoplay(index) {
 	}
 }
 
+var currentActivePlayerLyricIdx = -1;
+
+function updatePlayerSingleLineLyric(text, animate) {
+	var lyricEl = document.getElementById("player_lyric_text");
+	if (!lyricEl) return;
+	var cleanText = (text || "").trim();
+	if (lyricEl.textContent === cleanText) return;
+
+	if (animate) {
+		lyricEl.classList.remove("lyric-animate");
+		// Trigger DOM reflow to restart CSS keyframe animation
+		void lyricEl.offsetWidth;
+		lyricEl.textContent = cleanText;
+		lyricEl.classList.add("lyric-animate");
+	} else {
+		lyricEl.classList.remove("lyric-animate");
+		lyricEl.textContent = cleanText;
+	}
+}
+
+function setPlayerLyricPlayingState(isPlaying) {
+	var bar = document.getElementById("player_lyric_bar");
+	if (bar) {
+		if (isPlaying) {
+			bar.classList.add("playing");
+		} else {
+			bar.classList.remove("playing");
+		}
+	}
+}
+
 async function loadLyricsForCurrentSong() {
 	if (!playlist || !playlist[playlist_index]) return;
 	var song = playlist[playlist_index];
@@ -727,6 +758,9 @@ async function loadLyricsForCurrentSong() {
 		if (c) c.innerHTML = '<div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Fetching synced lyrics...</div>';
 	});
 
+	currentActivePlayerLyricIdx = -1;
+	updatePlayerSingleLineLyric("♪ Fetching lyrics...", true);
+
 	var lyricsData = await LyricsService.fetchLyrics(song.artist, song.title);
 	var timed = [];
 
@@ -739,6 +773,12 @@ async function loadLyricsForCurrentSong() {
 	}
 
 	LyricsService.currentTimedLyrics = timed;
+
+	if (!timed || timed.length === 0) {
+		updatePlayerSingleLineLyric("♪ " + song.title + " • " + song.artist, false);
+	} else {
+		updatePlayerSingleLineLyric("♪ " + song.title + " • Synced Lyrics Ready", true);
+	}
 
 	containers.forEach(function (c) {
 		if (!c) return;
@@ -789,6 +829,7 @@ function updateSyncedLyrics() {
 	}
 
 	if (activeIndex !== -1) {
+		// Highlight active line in full lyrics views & auto-scroll
 		var allLines = document.querySelectorAll(".lyric-line");
 		allLines.forEach(function (lineEl) {
 			var idx = parseInt(lineEl.getAttribute("data-idx"), 10);
@@ -801,6 +842,23 @@ function updateSyncedLyrics() {
 				lineEl.classList.remove("active");
 			}
 		});
+
+		// Animate 1-line synced lyric inside bottom player section
+		if (activeIndex !== currentActivePlayerLyricIdx) {
+			currentActivePlayerLyricIdx = activeIndex;
+			var lineText = timed[activeIndex].text;
+			if (lineText && lineText.trim()) {
+				updatePlayerSingleLineLyric(lineText.trim(), true);
+			}
+		}
+	} else {
+		// Instrumental or before first timestamp
+		if (currentActivePlayerLyricIdx !== -1 && timed.length > 0 && currentMs < timed[0].start_time) {
+			currentActivePlayerLyricIdx = -1;
+			var currentSong = playlist && playlist[playlist_index];
+			var infoMsg = currentSong ? "♪ " + currentSong.title + " • Intro" : "♪ Instrumental...";
+			updatePlayerSingleLineLyric(infoMsg, true);
+		}
 	}
 }
 
@@ -885,8 +943,8 @@ function frameLooper() {
 
 	if (style === "Classic") {
 		ctx.fillStyle = gradient;
-		var barGap = canvas.width / bars;
-		var bWidth = Math.max(1, barGap - 2);
+		var barGap = (canvas.width / bars) + 2;
+		var bWidth = Math.max(2, barGap - 3);
 
 		for (var i = 0; i < bars; i++) {
 			var freqVal = fbc_array[i] * sensitivity;
@@ -1122,16 +1180,26 @@ function switchTab(tabName) {
 	var homeView = document.getElementById("home_view");
 	var searchView = document.getElementById("search_view");
 	var lyricsView = document.getElementById("lyrics_view");
+	var chatView = document.getElementById("chat_view");
 
 	if (homeView) homeView.classList.remove("active");
 	if (searchView) searchView.classList.remove("active");
 	if (lyricsView) lyricsView.classList.remove("active");
+	if (chatView) chatView.classList.remove("active");
 
 	if (tabName === "home") {
 		if (homeView) homeView.classList.add("active");
 	} else if (tabName === "lyrics") {
 		if (lyricsView) lyricsView.classList.add("active");
 		loadLyricsForCurrentSong();
+	} else if (tabName === "ai_chat") {
+		if (chatView) {
+			chatView.classList.add("active");
+			var chatInput = document.getElementById("chat_input");
+			if (chatInput) {
+				setTimeout(function () { chatInput.focus(); }, 150);
+			}
+		}
 	} else {
 		if (searchView) searchView.classList.add("active");
 
@@ -1267,6 +1335,22 @@ function initAudioPlayer() {
 		});
 	}
 
+	// Single-line Player Bar Lyric Click to Open Modal
+	var playerLyricBar = document.getElementById("player_lyric_bar");
+	if (playerLyricBar) {
+		playerLyricBar.addEventListener("click", function () {
+			if (lyricsModal) {
+				var isOpen = lyricsModal.classList.contains("active");
+				if (!isOpen) {
+					lyricsModal.classList.add("active");
+					loadLyricsForCurrentSong();
+				} else {
+					lyricsModal.classList.remove("active");
+				}
+			}
+		});
+	}
+
 	// Live Search Input with Debouncing
 	var songSearch = document.getElementById("song_search");
 	var clearSearchBtn = document.getElementById("clear_search_btn");
@@ -1351,8 +1435,52 @@ function initAudioPlayer() {
 		});
 	}
 
+	var volumePopup = document.getElementById("volume_popup");
+	var quickMuteBtn = document.getElementById("quick_mute_btn");
+	var volumeValBadge = document.getElementById("volume_val_badge");
+	var volumeTrackWrap = document.querySelector(".volume-slider-track-wrap");
+
 	if (playbtn) playbtn.addEventListener("click", playPause);
-	if (mutebtn) mutebtn.addEventListener("click", mute);
+
+	// Prevent clicks/drags inside volume popup from bubbling to document (which would close it)
+	if (volumePopup) {
+		volumePopup.addEventListener("click", function (e) {
+			e.stopPropagation();
+		});
+		volumePopup.addEventListener("mousedown", function (e) {
+			e.stopPropagation();
+		});
+		volumePopup.addEventListener("touchstart", function (e) {
+			e.stopPropagation();
+		}, { passive: true });
+	}
+
+	// Volume Button Toggles Vertical Popup
+	if (mutebtn) {
+		mutebtn.addEventListener("click", function (e) {
+			e.stopPropagation();
+			if (volumePopup) {
+				volumePopup.classList.toggle("active");
+			}
+		});
+	}
+
+	// Quick Mute inside Vertical Popup
+	if (quickMuteBtn) {
+		quickMuteBtn.addEventListener("click", function (e) {
+			e.stopPropagation();
+			mute();
+		});
+	}
+
+	// Close Volume Popup when clicking anywhere outside
+	document.addEventListener("click", function (e) {
+		if (volumePopup && volumePopup.classList.contains("active")) {
+			if (!e.target.closest("#volume_control_wrapper")) {
+				volumePopup.classList.remove("active");
+			}
+		}
+	});
 
 	if (seekslider) {
 		seekslider.addEventListener("mousedown", function (event) { seeking = true; seek(event); });
@@ -1360,13 +1488,66 @@ function initAudioPlayer() {
 		seekslider.addEventListener("mouseup", function () { seeking = false; });
 	}
 
-	if (volumeslider) volumeslider.addEventListener("input", setvolume);
+	if (volumeslider) {
+		volumeslider.addEventListener("input", setvolume);
+		volumeslider.addEventListener("change", setvolume);
+	}
+
+	// Interactive Vertical Scrubbing on Track Wrapper
+	if (volumeTrackWrap) {
+		var isScrubbingVol = false;
+		function handleVerticalScrub(e) {
+			var rect = volumeTrackWrap.getBoundingClientRect();
+			var clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+			var offsetY = rect.bottom - clientY;
+			var pct = Math.max(0, Math.min(1, offsetY / rect.height));
+			if (volumeslider) {
+				volumeslider.value = Math.round(pct * 100);
+			}
+			setvolume();
+		}
+
+		volumeTrackWrap.addEventListener("mousedown", function (e) {
+			isScrubbingVol = true;
+			handleVerticalScrub(e);
+		});
+		window.addEventListener("mousemove", function (e) {
+			if (isScrubbingVol) {
+				handleVerticalScrub(e);
+			}
+		});
+		window.addEventListener("mouseup", function () {
+			isScrubbingVol = false;
+		});
+
+		volumeTrackWrap.addEventListener("touchstart", function (e) {
+			isScrubbingVol = true;
+			handleVerticalScrub(e);
+		}, { passive: true });
+		window.addEventListener("touchmove", function (e) {
+			if (isScrubbingVol) {
+				handleVerticalScrub(e);
+			}
+		}, { passive: true });
+		window.addEventListener("touchend", function () {
+			isScrubbingVol = false;
+		});
+	}
 
 	audio.addEventListener("timeupdate", function () {
 		seektimeupdate();
 		updateSyncedLyrics();
 	});
-	audio.addEventListener("ended", switchTrack);
+	audio.addEventListener("play", function () {
+		setPlayerLyricPlayingState(true);
+	});
+	audio.addEventListener("pause", function () {
+		setPlayerLyricPlayingState(false);
+	});
+	audio.addEventListener("ended", function () {
+		setPlayerLyricPlayingState(false);
+		switchTrack();
+	});
 
 	function switchTrack() {
 		if (!playlist || playlist.length === 0) return;
@@ -1390,26 +1571,46 @@ function initAudioPlayer() {
 		if (audio.paused) {
 			audio.play().then(function () {
 				if (playbtn) playbtn.className = "pause";
+				setPlayerLyricPlayingState(true);
 			}).catch(function (err) {
 				console.warn("Play error:", err);
 			});
 		} else {
 			audio.pause();
 			if (playbtn) playbtn.className = "play";
+			setPlayerLyricPlayingState(false);
 		}
 		renderSongsList(playlist);
+	}
+
+	function updateVolumeUI(skipSliderInput) {
+		var isMuted = audio.muted || audio.volume === 0;
+		var volPct = Math.round(audio.muted ? 0 : audio.volume * 100);
+
+		if (volumeValBadge) {
+			volumeValBadge.textContent = isMuted ? "0%" : volPct + "%";
+		}
+		if (volumeslider && !skipSliderInput) {
+			volumeslider.value = isMuted ? 0 : Math.round(audio.volume * 100);
+		}
+		if (mutebtn) {
+			mutebtn.className = isMuted ? "mute" : "volume";
+		}
+		if (quickMuteBtn) {
+			quickMuteBtn.innerHTML = isMuted ? '<i class="fa fa-volume-off"></i>' : '<i class="fa fa-volume-up"></i>';
+		}
 	}
 
 	function mute() {
 		if (audio.muted) {
 			audio.muted = false;
-			if (volumeslider) volumeslider.value = audio.volume * 100;
-			if (mutebtn) mutebtn.className = "volume";
+			if (audio.volume === 0) {
+				audio.volume = 0.7;
+			}
 		} else {
 			audio.muted = true;
-			if (volumeslider) volumeslider.value = 0;
-			if (mutebtn) mutebtn.className = "mute";
 		}
+		updateVolumeUI();
 	}
 
 	function seek(event) {
@@ -1420,19 +1621,20 @@ function initAudioPlayer() {
 		if (audio.duration) {
 			audio.currentTime = pct * audio.duration;
 			seekslider.value = pct * 500;
+			updateSyncedLyrics();
 		}
 	}
 
 	function setvolume() {
 		if (!volumeslider) return;
-		audio.volume = volumeslider.value / 100;
-		if (audio.volume > 0) {
+		var val = parseFloat(volumeslider.value);
+		if (val > 0) {
 			audio.muted = false;
-			if (mutebtn) mutebtn.className = "volume";
 		} else {
 			audio.muted = true;
-			if (mutebtn) mutebtn.className = "mute";
 		}
+		audio.volume = Math.max(0, Math.min(1, val / 100));
+		updateVolumeUI(true);
 	}
 
 	function seektimeupdate() {
@@ -1556,6 +1758,149 @@ function initAudioPlayer() {
 			}
 		});
 	}
+
+	// Initialize Voice Search
+	initVoiceSearch(triggerSearch);
+}
+
+function playDirectSong(song) {
+	if (!song) return;
+	var foundIdx = -1;
+	for (var i = 0; i < playlist.length; i++) {
+		if (playlist[i].file === song.file || (playlist[i].title === song.title && playlist[i].artist === song.artist)) {
+			foundIdx = i;
+			break;
+		}
+	}
+	if (foundIdx !== -1) {
+		playTrackAtIndex(foundIdx);
+	} else {
+		playlist.unshift(song);
+		renderSongsList(playlist);
+		playTrackAtIndex(0);
+	}
+	showToast("▶ Playing: " + song.title);
+}
+
+function initVoiceSearch(triggerSearchFn) {
+	var voiceBtn = document.getElementById("voice_search_btn");
+	var voiceModal = document.getElementById("voice_search_modal");
+	var closeVoiceBtn = document.getElementById("close_voice_modal");
+	var transcriptEl = document.getElementById("voice_transcript");
+	var statusHeading = document.getElementById("voice_status_heading");
+
+	var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+	var recognition = null;
+	var isListening = false;
+
+	if (SpeechRecognition) {
+		recognition = new SpeechRecognition();
+		recognition.continuous = false;
+		recognition.interimResults = true;
+		recognition.lang = "en-IN";
+
+		recognition.onstart = function () {
+			isListening = true;
+			if (voiceModal) voiceModal.classList.add("active");
+			if (statusHeading) statusHeading.textContent = "Listening...";
+			if (transcriptEl) transcriptEl.textContent = "Speak clearly into your microphone...";
+		};
+
+		recognition.onresult = function (event) {
+			var interimTranscript = "";
+			var finalTranscript = "";
+
+			for (var i = event.resultIndex; i < event.results.length; ++i) {
+				if (event.results[i].isFinal) {
+					finalTranscript += event.results[i][0].transcript;
+				} else {
+					interimTranscript += event.results[i][0].transcript;
+				}
+			}
+
+			var currentText = finalTranscript || interimTranscript;
+			if (transcriptEl && currentText) {
+				transcriptEl.textContent = '"' + currentText + '"';
+			}
+
+			if (finalTranscript) {
+				processVoiceQuery(finalTranscript.trim());
+			}
+		};
+
+		recognition.onerror = function (event) {
+			console.warn("Speech recognition error:", event.error);
+			isListening = false;
+			if (statusHeading) statusHeading.textContent = "Didn't catch that";
+			if (transcriptEl) transcriptEl.textContent = "Tap the mic to try again, or type in search box.";
+		};
+
+		recognition.onend = function () {
+			isListening = false;
+		};
+	}
+
+	function startVoiceSearch() {
+		if (!recognition) {
+			showToast("Voice search is not supported in this browser. Please type to search.");
+			return;
+		}
+		try {
+			recognition.start();
+		} catch (err) {
+			console.warn("Recognition start error:", err);
+		}
+	}
+
+	function stopVoiceSearch() {
+		if (recognition && isListening) {
+			try { recognition.stop(); } catch (e) {}
+		}
+		if (voiceModal) voiceModal.classList.remove("active");
+	}
+
+	function processVoiceQuery(query) {
+		if (!query) return;
+		var clean = query.replace(/^(play|search for|find|listen to)\s+/i, "").trim();
+		setTimeout(function () {
+			stopVoiceSearch();
+			switchTab("search");
+			var songSearch = document.getElementById("song_search");
+			if (songSearch) songSearch.value = clean || query;
+			if (typeof triggerSearchFn === "function") {
+				triggerSearchFn(clean || query);
+			}
+			showToast("🎤 Searching for: " + (clean || query));
+		}, 600);
+	}
+
+	if (voiceBtn) {
+		voiceBtn.addEventListener("click", function () {
+			startVoiceSearch();
+		});
+	}
+
+	if (closeVoiceBtn) {
+		closeVoiceBtn.addEventListener("click", function () {
+			stopVoiceSearch();
+		});
+	}
+
+	if (voiceModal) {
+		voiceModal.addEventListener("click", function (e) {
+			if (e.target === voiceModal) {
+				stopVoiceSearch();
+			}
+		});
+	}
+
+	var voiceChips = document.querySelectorAll(".voice-hint-chip");
+	voiceChips.forEach(function (chip) {
+		chip.addEventListener("click", function () {
+			var sampleQuery = this.getAttribute("data-speak");
+			processVoiceQuery(sampleQuery);
+		});
+	});
 }
 
 window.addEventListener("load", initAudioPlayer);

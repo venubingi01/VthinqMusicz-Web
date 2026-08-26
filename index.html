@@ -19,11 +19,12 @@
       rel="stylesheet">
    <link href="font-awesome/css/font-awesome.min.css" rel="stylesheet">
    <link rel="stylesheet" href="css/icons.min.css">
-   <link href="css/style.css" rel="stylesheet" type="text/css">
+   <link href="css/style.css?v=11" rel="stylesheet" type="text/css">
    <link rel="icon"
       href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
    <script type="text/javascript" src="javascript/crypto-js.min.js"></script>
-   <script type="text/javascript" src="javascript/audio_player.js?v=9"></script>
+   <script type="text/javascript" src="javascript/audio_player.js?v=11"></script>
+   <script type="text/javascript" src="javascript/ai_chat.js?v=1"></script>
    <script>
       if ('serviceWorker' in navigator) {
          window.addEventListener('load', function () {
@@ -54,7 +55,9 @@
                <ul class="header-action-list">
                   <li title="Home" class="nav-icon active" data-tab="home"><i class="fa fa-home"></i></li>
                   <li title="Search" class="nav-icon" data-tab="search"><i class="fa fa-search"></i></li>
-                  <li id="top_funding_btn" class="nav-action-chip sponsor-chip" title="Developer Profile & Support"><i
+                  <li title="AI DJ Chat" class="nav-icon ai-chat-nav-btn" data-tab="ai_chat"><i class="fa fa-magic"></i>
+                  </li>
+                  <li id="top_funding_btn" class="sponsor-chip" title="Developer Profile & Support"><i
                         class="fa fa-user"></i></li>
                </ul>
             </div>
@@ -64,10 +67,9 @@
             <div class="container">
                <div class="header nav-tabs">
                   <div class="col active" data-tab="home"><i class="fa fa-home"></i> Home</div>
-                  <div class="col" data-tab="latest"><i class="fa fa-bolt"></i> Latest</div>
                   <div class="col" data-tab="motivational"><i class="fa fa-fire"></i> Motivational</div>
                   <div class="col" data-tab="deep_focus"><i class="fa fa-headphones"></i> Deep Focus</div>
-                  <div class="col" data-tab="search"><i class="fa fa-search"></i> Search</div>
+                  <div class="col" data-tab="ai_chat"><i class="fa fa-magic"></i> AI DJ Chat</div>
                   <div class="col" data-tab="lyrics"><i class="fa fa-quote-right"></i> Lyrics</div>
                   <div class="clear"></div>
                </div>
@@ -133,6 +135,8 @@
                      <i class="fa fa-search search-icon"></i>
                      <input type="text" id="song_search" placeholder="Search songs, artists, albums..."
                         autocomplete="off">
+                     <button id="voice_search_btn" class="voice-search-btn" title="Search with Voice"><i
+                           class="fa fa-microphone"></i></button>
                      <button id="clear_search_btn" class="clear-search-btn" title="Clear search"><i
                            class="fa fa-times-circle"></i></button>
                   </div>
@@ -146,7 +150,66 @@
                   </div>
                </div>
                <div id="songslistcon">
-                  <div class="no-songs">Use the search box above or tap a tag to discover millions of songs.</div>
+                  <div class="no-songs">Use the search box above, try voice search, or tap a tag to discover millions of
+                     songs.</div>
+               </div>
+            </div>
+         </div>
+
+         <!-- AI DJ Music Assistant Chat View -->
+         <div id="chat_view" class="view-screen">
+            <div class="innerscreen chat-screen-layout">
+               <div class="chat-header-bar">
+                  <div class="chat-bot-profile">
+                     <div class="chat-bot-avatar">
+                        <i class="fa fa-magic"></i>
+                        <span class="online-indicator"></span>
+                     </div>
+                     <div class="chat-bot-info">
+                        <h2>Sangeetham AI DJ</h2>
+                        <p><i class="fa fa-circle online-dot"></i> Online • Intelligent Music Recommendation & DJ</p>
+                     </div>
+                  </div>
+                  <div class="chat-actions">
+                     <button id="clear_chat_btn" class="chat-action-btn" title="Clear conversation"><i
+                           class="fa fa-trash-o"></i> Clear</button>
+                  </div>
+               </div>
+
+               <!-- Chat Messages Feed -->
+               <div id="chat_messages_container" class="chat-messages-container">
+                  <div class="chat-message bot-message">
+                     <div class="message-avatar"><i class="fa fa-magic"></i></div>
+                     <div class="message-body">
+                        <div class="message-bubble">
+                           <p>👋 Welcome! I am your <strong>Sangeetham AI Music DJ</strong>. How are you feeling today?
+                              Tell me a mood, artist, genre, or asking for track recommendations!</p>
+                        </div>
+                        <div class="chat-quick-suggestions">
+                           <button class="chat-chip" data-prompt="Play trending Hindi hits">🔥 Trending Hindi</button>
+                           <button class="chat-chip" data-prompt="Calm acoustic songs for relaxation">☕ Chill
+                              Acoustic</button>
+                           <button class="chat-chip" data-prompt="High energy workout tracks">⚡ Workout Pump</button>
+                           <button class="chat-chip" data-prompt="Deep focus instrumental lo-fi beats">🎧 Focus
+                              Lo-Fi</button>
+                           <button class="chat-chip" data-prompt="Best romantic melodies of A.R. Rahman">❤️ A.R. Rahman
+                              Hits</button>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               <!-- Chat Input Dock -->
+               <div class="chat-input-bar">
+                  <div class="chat-input-wrapper">
+                     <input type="text" id="chat_input"
+                        placeholder="Ask AI DJ: 'Play upbeat pop', 'Sad Telugu songs', 'Recommend songs like Temper'..."
+                        autocomplete="off">
+                     <button id="chat_voice_btn" class="chat-mic-btn" title="Speak to AI DJ"><i
+                           class="fa fa-microphone"></i></button>
+                     <button id="send_chat_btn" class="chat-send-btn" title="Send Prompt"><i
+                           class="fa fa-paper-plane"></i></button>
+                  </div>
                </div>
             </div>
          </div>
@@ -334,6 +397,37 @@
          </div>
       </div>
 
+      <!-- Interactive Voice Search Modal Overlay -->
+      <div id="voice_search_modal" class="voice-modal-overlay">
+         <div class="voice-modal-card">
+            <button id="close_voice_modal" class="close-modal-btn" title="Close"><i class="fa fa-times"></i></button>
+            <div class="voice-wave-container">
+               <div class="voice-ripple r1"></div>
+               <div class="voice-ripple r2"></div>
+               <div class="voice-ripple r3"></div>
+               <div class="voice-mic-circle">
+                  <i class="fa fa-microphone"></i>
+               </div>
+            </div>
+            <h3 id="voice_status_heading">Listening...</h3>
+            <p id="voice_transcript" class="voice-transcript">Speak now: "Play Kesariya", "Arijit Singh", "Lofi
+               Beats"...</p>
+            <div class="voice-modal-hints">
+               <span>Quick commands:</span>
+               <button class="voice-hint-chip" data-speak="Play Kesariya">"Play Kesariya"</button>
+               <button class="voice-hint-chip" data-speak="A.R. Rahman Hits">"A.R. Rahman"</button>
+               <button class="voice-hint-chip" data-speak="Telugu Workout Songs">"Telugu Workout"</button>
+            </div>
+         </div>
+      </div>
+
+      <!-- Floating AI DJ Chat Widget Launcher -->
+      <button id="floating_chat_btn" class="floating-chat-btn" title="Chat with Sangeetham AI DJ">
+         <i class="fa fa-magic"></i>
+         <span class="floating-chat-label">AI DJ</span>
+         <span class="floating-pulse-ring"></span>
+      </button>
+
       <!-- Interactive Toast Notification -->
       <div id="app_toast" class="toast-notification">
          <i class="fa fa-check-circle toast-icon"></i>
@@ -350,6 +444,24 @@
             </div>
          </div>
 
+         <!-- Single-Line Animated Synced Lyric Bar in Player Dock -->
+         <div id="player_lyric_bar" class="player-lyric-bar" title="Click to open full karaoke lyrics">
+            <div class="player-lyric-badge">
+               <i class="fa fa-quote-left lyric-quote-icon"></i>
+               <div class="lyric-eq-bars" id="player_lyric_eq">
+                  <span class="eq-bar bar-1"></span>
+                  <span class="eq-bar bar-2"></span>
+                  <span class="eq-bar bar-3"></span>
+               </div>
+            </div>
+            <div class="player-lyric-viewport">
+               <div id="player_lyric_text" class="player-lyric-text">♪ Sangeetham Live Lyrics</div>
+            </div>
+            <div class="player-lyric-tag">
+               <span class="lyric-chip"><i class="fa fa-microphone"></i> LIVE</span>
+            </div>
+         </div>
+
          <div id="mp3_player" class="visualizer-hidden">
             <canvas id="analyser_render"></canvas>
          </div>
@@ -361,9 +473,9 @@
                   class="fa fa-pause"></i></button>
             <button id="next-s" title="Next Track"><i class="fa fa-angle-right"></i></button>
             <button id="loop_btn" title="Toggle Loop"><i class="fa fa-repeat"></i></button>
-            <button id="lyrics_btn" class="lyrics-control-btn" title="Toggle Synced Lyrics Overlay"><i
+            <!--   <button id="lyrics_btn" class="lyrics-control-btn" title="Toggle Synced Lyrics Overlay"><i
                   class="fa fa-quote-right"></i> Lyrics</button>
-
+            
             <select id="style_select" class="style-select" title="Choose Visualizer Style">
                <option value="Classic">📊 Classic Bars</option>
                <option value="Neon Wave">🌊 Neon Wave</option>
@@ -380,7 +492,7 @@
                <option value="emerald">🟢 Matrix Emerald</option>
                <option value="violet">💜 Electric Violet</option>
                <option value="ocean">🌊 Ocean Breeze</option>
-            </select>
+            </select> -->
 
             <div class="sens-control" title="Visualizer Sensitivity">
                <i class="fa fa-bolt"></i>
@@ -396,9 +508,18 @@
             <div id="timebox">
                <span id="current_time">00:00</span>| <span id="duration_time">00:00</span>
             </div>
-            <button id="mutebtn" class="volume" title="Mute/Unmute"><i class="fa fa-volume-up"></i><i
-                  class="fa fa-volume-off"></i></button>
-            <input id="volumeslider" type="range" min="0" max="100" value="100" step="1">
+            <div class="volume-control-wrapper" id="volume_control_wrapper">
+               <button id="mutebtn" class="volume" title="Volume Controls"><i class="fa fa-volume-up"></i><i
+                     class="fa fa-volume-off"></i></button>
+               <div id="volume_popup" class="volume-popup">
+                  <span id="volume_val_badge" class="volume-val-badge">100%</span>
+                  <div class="volume-slider-track-wrap">
+                     <input id="volumeslider" type="range" min="0" max="100" value="100" step="1" orient="vertical">
+                  </div>
+                  <button id="quick_mute_btn" class="quick-mute-btn" title="Quick Mute / Unmute"><i
+                        class="fa fa-volume-up"></i></button>
+               </div>
+            </div>
          </div>
       </div>
    </div>
