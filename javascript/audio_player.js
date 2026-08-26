@@ -515,8 +515,8 @@ function resizeCanvas() {
 
 // Home Page Feeds Loading
 async function loadHomeFeeds() {
-	var latestPromise = SaavnAPI.searchSongs("latest tranding hindi songs", 1, 8);
-	var motivationalPromise = SaavnAPI.searchSongs("motivational telugu songs", 1, 8);
+	var latestPromise = SaavnAPI.searchSongs("latest telugu songs", 1, 8);
+	var motivationalPromise = SaavnAPI.searchSongs("motivational songs", 1, 8);
 	var deepFocusPromise = SaavnAPI.searchSongs("deep focus study", 1, 8);
 
 	var results = await Promise.all([latestPromise, motivationalPromise, deepFocusPromise]);
@@ -939,8 +939,11 @@ function frameLooper() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 	detectBeat(fbc_array);
-
-	bars = 250;
+	if (window.innerWidth < 600) {
+		bars = 50;
+	} else {
+		bars = 250;
+	}
 	var theme = colorThemes[currentThemeKey];
 	var style = visualizerStyles[currentStyleIndex];
 

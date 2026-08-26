@@ -76,7 +76,7 @@ body {
 #header {
 	position: relative;
 	z-index: 50;
-	background: rgba(10, 12, 20, 0.72);
+	background: rgba(10, 12, 20, 0.231);
 	backdrop-filter: blur(20px);
 	-webkit-backdrop-filter: blur(20px);
 	border-bottom: 1px solid var(--border-glass);
@@ -812,7 +812,6 @@ body {
 	bottom: 0;
 	height: 120px;
 	z-index: 100;
-	background: rgba(10, 12, 20, 0.92);
 	backdrop-filter: blur(25px);
 	-webkit-backdrop-filter: blur(25px);
 	border-top: 1px solid var(--border-glass);
@@ -1087,7 +1086,6 @@ body {
 	justify-content: center;
 	gap: 8px;
 	flex-wrap: wrap;
-	background: var(--bg-glass-card);
 }
 
 #prev-s,
@@ -1431,44 +1429,6 @@ input[type='range']::-webkit-slider-thumb:hover {
 	}
 }
 
-@media screen and (max-width: 680px) {
-	.player-lyric-bar {
-		top: 6px;
-		width: calc(100% - 20px);
-		max-width: 100%;
-		height: 28px;
-		padding: 0 10px;
-	}
-
-	.player-lyric-tag {
-		display: none;
-	}
-
-	.player-lyric-text {
-		font-size: 11px;
-	}
-
-	.menu-container {
-		width: 95%;
-	}
-
-	.innerscreen {
-		padding: 15px;
-	}
-
-	.cards-grid {
-		grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
-		gap: 12px;
-	}
-
-	#container {
-		height: 130px;
-	}
-
-	#player_btn_container {
-		gap: 4px;
-	}
-}
 
 /* Synced Karaoke Lyrics View & Modal - Apple Music Ambient Redesign */
 .lyrics-split-layout {
@@ -1488,7 +1448,6 @@ input[type='range']::-webkit-slider-thumb:hover {
 	flex-direction: column;
 	align-items: center;
 	text-align: center;
-	background: var(--bg-glass-card);
 	backdrop-filter: blur(25px);
 	-webkit-backdrop-filter: blur(25px);
 	border: 1px solid var(--border-glass);
@@ -1619,6 +1578,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 
 .lyrics-content-scroll {
 	max-height: 450px;
+	background: transparent;
 
 }
 
@@ -2431,8 +2391,16 @@ input[type='range']::-webkit-slider-thumb:hover {
 
 	.header.nav-tabs .col {
 		padding: 8px 14px;
-		font-size: 12px;
+		font-size: 24px;
 		border-radius: 20px;
+	}
+
+	.menu-container .header.nav-tabs {
+		display: inline-flex;
+	}
+
+	.header.nav-tabs .col span {
+		display: none;
 	}
 
 	/* Middle Container Layout */
@@ -3288,5 +3256,47 @@ input[type='range']::-webkit-slider-thumb:hover {
 
 	.chat-message {
 		max-width: 95%;
+	}
+
+	.player-lyric-bar {
+		display: none;
+	}
+
+	.player-lyric-tag {
+		display: none;
+	}
+
+	.player-lyric-text {
+		font-size: 11px;
+	}
+
+	.menu-container {
+		width: 95%;
+	}
+
+	.innerscreen {
+		padding: 15px;
+	}
+
+	.cards-grid {
+		grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+		gap: 12px;
+	}
+
+	#container {
+		height: 130px;
+	}
+
+	#player_btn_container {
+		gap: 4px;
+		padding: 0 10px;
+	}
+
+	#header {
+		background: rgba(0, 0, 0, 0.781);
+	}
+
+	.middle-container {
+		top: 160px;
 	}
 }
