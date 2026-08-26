@@ -3,38 +3,60 @@
   "short_name": "Sangeetham",
   "description": "High-performance AI audio streaming music player with real-time synced lyrics and beat visualizer",
   "start_url": "./index.html",
+  "id": "./index.html",
   "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay", "minimal-ui"],
   "orientation": "any",
   "background_color": "#0a0c14",
   "theme_color": "#0a0c14",
+  "categories": ["music", "entertainment", "audio"],
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%23ff2d49'/><text y='.9em' x='10' font-size='80'>🎵</text></svg>",
+      "src": "icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%23ff2d49'/><text y='.9em' x='10' font-size='80'>🎵</text></svg>",
+      "src": "icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "shortcuts": [
+    {
+      "name": "AI DJ Chat",
+      "short_name": "AI DJ",
+      "description": "Chat with Sangeetham AI DJ for music recommendations",
+      "url": "./index.html?tab=ai_chat",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
     {
       "name": "Search Music",
       "short_name": "Search",
       "description": "Search millions of JioSaavn tracks",
       "url": "./index.html?tab=search",
-      "icons": [{ "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>", "sizes": "192x192" }]
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Live Lyrics",
       "short_name": "Lyrics",
       "description": "View synced karaoke lyrics",
       "url": "./index.html?tab=lyrics",
-      "icons": [{ "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎤</text></svg>", "sizes": "192x192" }]
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

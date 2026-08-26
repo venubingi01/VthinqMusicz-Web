@@ -3300,3 +3300,216 @@ input[type='range']::-webkit-slider-thumb:hover {
 		top: 160px;
 	}
 }
+
+/* ==========================================================================
+   PWA "Add to Home Screen" Styles
+   ========================================================================== */
+.install-pwa-chip {
+	background: var(--gradient-accent);
+	color: #fff;
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	padding: 5px 12px;
+	border-radius: 20px;
+	font-size: 11.5px;
+	font-weight: 700;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+	box-shadow: 0 4px 15px rgba(255, 45, 73, 0.4);
+	transition: all 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+
+.install-pwa-chip:hover {
+	transform: translateY(-2px) scale(1.05);
+	box-shadow: 0 6px 20px rgba(255, 45, 73, 0.6);
+}
+
+/* Floating Slide-Up Install Banner */
+.pwa-install-banner {
+	position: fixed;
+	bottom: 140px;
+	left: 50%;
+	transform: translateX(-50%) translateY(180%);
+	z-index: 999;
+	width: 92%;
+	max-width: 480px;
+	background: rgba(18, 22, 36, 0.94);
+	backdrop-filter: blur(30px);
+	-webkit-backdrop-filter: blur(30px);
+	border: 1px solid var(--border-glass);
+	border-radius: 22px;
+	padding: 14px 18px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	box-shadow: 0 15px 45px rgba(0, 0, 0, 0.6), 0 0 25px rgba(255, 45, 73, 0.25);
+	opacity: 0;
+	visibility: hidden;
+	transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pwa-install-banner.active {
+	transform: translateX(-50%) translateY(0);
+	opacity: 1;
+	visibility: visible;
+}
+
+.pwa-banner-content {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
+}
+
+.pwa-banner-icon {
+	width: 44px;
+	height: 44px;
+	border-radius: 12px;
+	object-fit: cover;
+	flex-shrink: 0;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.pwa-banner-text {
+	min-width: 0;
+}
+
+.pwa-banner-text h4 {
+	font-size: 13.5px;
+	font-weight: 800;
+	color: #fff;
+	margin-bottom: 2px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.pwa-banner-text p {
+	font-size: 11px;
+	color: var(--text-sub);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.pwa-banner-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+.pwa-banner-install-btn {
+	background: var(--gradient-accent);
+	color: #fff;
+	border: none;
+	outline: none;
+	padding: 8px 14px;
+	border-radius: 14px;
+	font-size: 12px;
+	font-weight: 700;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	box-shadow: 0 4px 12px rgba(255, 45, 73, 0.4);
+	transition: all 0.2s ease;
+}
+
+.pwa-banner-install-btn:hover {
+	transform: scale(1.05);
+	box-shadow: 0 6px 18px rgba(255, 45, 73, 0.6);
+}
+
+.pwa-banner-close-btn {
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid var(--border-glass);
+	color: var(--text-sub);
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 12px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.pwa-banner-close-btn:hover {
+	background: rgba(255, 45, 73, 0.2);
+	color: #fff;
+}
+
+/* iOS Safari PWA Guide Modal */
+.pwa-modal-app-icon {
+	width: 42px;
+	height: 42px;
+	border-radius: 12px;
+	object-fit: cover;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.pwa-ios-instructions {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin: 18px 0;
+	text-align: left;
+}
+
+.pwa-step-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid var(--border-glass);
+	border-radius: 16px;
+	padding: 12px 14px;
+}
+
+.pwa-step-num {
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	background: var(--gradient-accent);
+	color: #fff;
+	font-weight: 800;
+	font-size: 12px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.pwa-step-info {
+	font-size: 13px;
+	line-height: 1.45;
+	color: var(--text-main);
+}
+
+.pwa-highlight-icon {
+	color: #29b6f6;
+	margin: 0 3px;
+}
+
+@media screen and (max-width: 480px) {
+	.pwa-install-banner {
+		bottom: 135px;
+		flex-direction: column;
+		align-items: stretch;
+		padding: 12px 14px;
+		gap: 10px;
+	}
+
+	.pwa-banner-actions {
+		justify-content: space-between;
+	}
+
+	.pwa-banner-install-btn {
+		flex: 1;
+		justify-content: center;
+	}
+}

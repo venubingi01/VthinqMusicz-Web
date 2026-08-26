@@ -1,14 +1,20 @@
 // Service Worker for Sangeetham AI Music Player PWA
-const CACHE_NAME = 'sangeetham-v2.5';
+const CACHE_NAME = 'sangeetham-v3.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './css/style.css',
   './css/icons.min.css',
+  './font-awesome/css/all.min.css',
+  './font-awesome/css/v4-shims.min.css',
   './font-awesome/css/font-awesome.min.css',
   './javascript/audio_player.js',
+  './javascript/ai_chat.js',
   './javascript/crypto-js.min.js',
-  './manifest.json'
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/apple-touch-icon.png'
 ];
 
 // Install Event - Cache core assets

@@ -7,11 +7,15 @@
    <meta name="theme-color" content="#0a0c14">
    <meta name="description"
       content="High-performance AI audio streaming music player with real-time synced lyrics and beat visualizer">
+   <meta name="mobile-web-app-capable" content="yes">
    <meta name="apple-mobile-web-app-capable" content="yes">
    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
    <meta name="apple-mobile-web-app-title" content="Sangeetham">
+   <meta name="application-name" content="Sangeetham">
    <title>Sangeetham - Vthinq Music Player</title>
    <link rel="manifest" href="manifest.json">
+   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
    <link rel="preconnect" href="https://fonts.googleapis.com">
    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
    <link
@@ -22,11 +26,10 @@
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
    <link rel="stylesheet" href="css/icons.min.css">
    <link href="css/style.css?v=11" rel="stylesheet" type="text/css">
-   <link rel="icon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
    <script type="text/javascript" src="javascript/crypto-js.min.js"></script>
    <script type="text/javascript" src="javascript/audio_player.js?v=11"></script>
    <script type="text/javascript" src="javascript/ai_chat.js?v=1"></script>
+   <script type="text/javascript" src="javascript/pwa_install.js?v=1"></script>
    <script>
       if ('serviceWorker' in navigator) {
          window.addEventListener('load', function () {
@@ -57,7 +60,9 @@
                <ul class="header-action-list">
                   <li title="Home" class="nav-icon active" data-tab="home"><i class="fa fa-home"></i></li>
                   <li title="Search" class="nav-icon" data-tab="search"><i class="fa fa-search"></i></li>
-
+                  <li id="header_install_btn" class="install-pwa-chip" title="Add Sangeetham to Home Screen" style="display: none;">
+                     <i class="fa-solid fa-download"></i> <span>Install</span>
+                  </li>
                   <li id="top_funding_btn" class="sponsor-chip" title="Developer Profile & Support"><i
                         class="fa fa-user"></i></li>
                </ul>
@@ -450,6 +455,62 @@
          <span class="floating-chat-label">AI DJ</span>
          <span class="floating-pulse-ring"></span>
       </button>
+
+      <!-- Modern PWA Add to Home Screen Slide-up Banner -->
+      <div id="pwa_install_banner" class="pwa-install-banner">
+         <div class="pwa-banner-content">
+            <img src="icons/icon-192.png" alt="Sangeetham App Icon" class="pwa-banner-icon">
+            <div class="pwa-banner-text">
+               <h4>Install Sangeetham</h4>
+               <p>Add to home screen for fast offline playback & instant access</p>
+            </div>
+         </div>
+         <div class="pwa-banner-actions">
+            <button id="pwa_banner_install_btn" class="pwa-banner-install-btn">
+               <i class="fa-solid fa-download"></i> Add to Home Screen
+            </button>
+            <button id="pwa_banner_close_btn" class="pwa-banner-close-btn" title="Dismiss">
+               <i class="fa-solid fa-xmark"></i>
+            </button>
+         </div>
+      </div>
+
+      <!-- iOS Safari Add to Home Screen Guide Modal -->
+      <div id="pwa_ios_modal" class="modal-overlay">
+         <div class="modal-card pwa-ios-card">
+            <div class="modal-header">
+               <div class="modal-title-box">
+                  <img src="icons/icon-192.png" alt="Sangeetham App Icon" class="pwa-modal-app-icon">
+                  <div>
+                     <h3>Install on iPhone / iPad</h3>
+                     <p>Add Sangeetham to your iOS Home Screen</p>
+                  </div>
+               </div>
+               <button id="close_ios_pwa_modal" class="close-modal-btn"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="pwa-ios-instructions">
+               <div class="pwa-step-item">
+                  <div class="pwa-step-num">1</div>
+                  <div class="pwa-step-info">
+                     <p>Tap the <strong>Share</strong> button <i class="fa-solid fa-arrow-up-from-bracket pwa-highlight-icon"></i> in Safari's bottom toolbar.</p>
+                  </div>
+               </div>
+               <div class="pwa-step-item">
+                  <div class="pwa-step-num">2</div>
+                  <div class="pwa-step-info">
+                     <p>Scroll down and tap <strong>'Add to Home Screen'</strong> <i class="fa-solid fa-square-plus pwa-highlight-icon"></i>.</p>
+                  </div>
+               </div>
+               <div class="pwa-step-item">
+                  <div class="pwa-step-num">3</div>
+                  <div class="pwa-step-info">
+                     <p>Tap <strong>'Add'</strong> in the top right corner to enjoy fullscreen music! 🎵</p>
+                  </div>
+               </div>
+            </div>
+            <button id="got_it_ios_btn" class="submit-modal-btn">Got It!</button>
+         </div>
+      </div>
 
       <!-- Interactive Toast Notification -->
       <div id="app_toast" class="toast-notification">
