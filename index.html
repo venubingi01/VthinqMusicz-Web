@@ -25,11 +25,12 @@
    <link href="font-awesome/css/v4-shims.min.css" rel="stylesheet">
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
    <link rel="stylesheet" href="css/icons.min.css">
-   <link href="css/style.css?v=14" rel="stylesheet" type="text/css">
+   <link href="css/style.css?v=18" rel="stylesheet" type="text/css">
    <script type="text/javascript" src="javascript/crypto-js.min.js"></script>
-   <script type="text/javascript" src="javascript/audio_player.js?v=14"></script>
-   <script type="text/javascript" src="javascript/ai_chat.js?v=4"></script>
-   <script type="text/javascript" src="javascript/pwa_install.js?v=4"></script>
+   <script type="text/javascript" src="javascript/lyrics_service.js?v=2"></script>
+   <script type="text/javascript" src="javascript/audio_player.js?v=18"></script>
+   <script type="text/javascript" src="javascript/ai_chat.js?v=8"></script>
+   <script type="text/javascript" src="javascript/pwa_install.js?v=8"></script>
    <script>
       if ('serviceWorker' in navigator) {
          window.addEventListener('load', function () {
@@ -44,7 +45,10 @@
 </head>
 
 <body>
+
    <div id="main">
+
+
 
       <div id="header">
          <div class="container header-top">
@@ -58,33 +62,38 @@
             </div>
             <div class="right-container">
                <ul class="header-action-list">
-                  <li title="Home" class="nav-icon active" data-tab="home"><i class="fa fa-home"></i></li>
-                  <li title="Search" class="nav-icon" data-tab="search"><i class="fa fa-search"></i></li>
                   <li id="top_funding_btn" class="sponsor-chip" title="Developer Profile & Support"><i
-                        class="fa fa-user"></i></li>
+                        class="fa fa-cog"></i></li>
+                  <!-- <li id="search" class="nav-icon" title="Search"><i class="fa fa-search"></i></li> -->
+                  <li id="mobile_menu_btn" class="mobile-menu-btn" title="Navigation Menu"><i class="fa fa-bars"></i>
+                  </li>
                </ul>
             </div>
             <div class="clear"></div>
          </div>
-         <div class="menu-container">
-            <div class="container">
-               <div class="header nav-tabs">
-                  <div class="col active" data-tab="home"><i class="fa fa-home"></i> <span>Home</span></div>
-                  <div class="col" data-tab="search"><i class="fa fa-search"></i> <span>Search</span></div>
-                  <div class="col" data-tab="ai_chat"><i class="fa-solid fa-brain"></i> <span>Sangeetham AI</span></div>
-                  <div class="col" data-tab="lyrics"><i class="fa fa-quote-right"></i> <span>Lyrics</span></div>
-                  <div class="clear"></div>
-               </div>
-            </div>
-         </div>
+
 
       </div>
+
 
       <div id="middle_container" class="middle-container">
          <!-- Home View with Curated Sections -->
 
       </div>
    </div>
+
+   <div class="menu-container">
+      <div class="container">
+         <div class="header nav-tabs">
+            <div class="col active" data-tab="home"><i class="fa fa-home"></i> <span>Home</span></div>
+            <div class="col" data-tab="search"><i class="fa fa-search"></i> <span>Search</span></div>
+            <div class="col" data-tab="ai_chat"><i class="fa-solid fa-brain"></i> <span>Sangeetham AI</span></div>
+            <div class="col" data-tab="lyrics"><i class="fa fa-quote-right"></i> <span>Lyrics</span></div>
+            <div class="clear"></div>
+         </div>
+      </div>
+   </div>
+
 
    <div id="home_view" class="view-screen active">
       <div class="innerscreen">
@@ -299,7 +308,7 @@
                   <span class="floating-pulse-ring"></span>
                </div>
                <button id="share_lyrics_btn" class="lyrics-share-action-btn" title="Share Live Lyrics Link">
-                  <i class="fa-solid fa-share-nodes"></i> <span>Share Lyrics</span>
+                  <i class="fa-solid fa-share-nodes"></i> <span>Share</span>
                </button>
             </div>
          </div>
@@ -313,27 +322,22 @@
                </div>
             </div>
          </div>
-
+         <footer class="app-footer">
+            <div class="footer-container">
+               <div class="dev-credits">
+                  <span class="dev-tag"><i class="fa fa-code"></i> Made with ❤️ by <strong>Venu
+                        Bingi</strong></span>
+               </div>
+            </div>
+         </footer>
       </div>
+
 
 
 
    </div>
 
-   <footer class="app-footer">
-      <div class="footer-container">
-         <div class="dev-credits">
-            <span class="dev-tag"><i class="fa fa-code"></i> Developed with ❤️ by <strong>Venu
-                  Bingi</strong></span>
-            <span class="footer-sep">•</span>
-            <span class="app-ver">Sangeetham AI Player</span>
-         </div>
-         <div class="footer-buttons">
-            <button id="footer_funding_btn" class="footer-action-btn sponsor-btn"><i class="fa fa-user-circle"></i>
-               Developer Profile</button>
-         </div>
-      </div>
-   </footer>
+
    </div>
 
    <!-- Developer & App Footer -->
@@ -412,10 +416,10 @@
       <div class="modal-card funding-modal-card">
          <div class="modal-header">
             <div class="modal-title-box">
-               <i class="fa fa-user-circle modal-header-icon dev-icon"></i>
+
                <div>
-                  <h3>Developer Profile & Support</h3>
-                  <p>Developed with ❤️ by Venu Bingi • Sangeetham AI Player</p>
+                  <h3>About App</h3>
+                  <p>Sangeetham AI Player 1.0.1</p>
                </div>
             </div>
             <button id="close_funding_modal" class="close-modal-btn"><i class="fa fa-times"></i></button>
@@ -423,40 +427,44 @@
          <div class="funding-body">
             <a href="https://www.linkedin.com/in/venu-bingi-bbb9689a" target="_blank" rel="noopener"
                class="funding-option-card dev-profile-link-card">
-               <div class="dev-avatar"><i class="fa fa-linkedin"></i></div>
+               <div class="dev-avatar">
+
+                  <img
+                     src="https://media.licdn.com/dms/image/v2/D5603AQHd3CTjQuHk8A/profile-displayphoto-scale_200_200/B56ZuclnV3K0AY-/0/1767858666205?e=2147483647&v=beta&t=m-LrPt9TFG16DF-0m-gbf_YWp-PsMkqgPPI6_esrmmI"
+                     alt="Developer Avatar">
+               </div>
                <div class="dev-info-text">
-                  <h4>Developed with ❤️ by <strong>Venu Bingi</strong> <i class="fa fa-external-link dev-link-icon"></i>
+                  <h4>Made with ❤️ by <strong>Venu Bingi</strong> <i class="fa fa-external-link dev-link-icon"></i>
                   </h4>
-                  <p>Creating open-source audio streaming applications and developer tools.</p>
+                  <p>Building open-source audio experiences and AI developer tools for the web and mobile.</p>
                </div>
             </a>
 
+            <button id="modal_feedback_option_btn" type="button" class="funding-option-card feedback-theme-btn">
+               <span class="funding-emoji">💬</span>
+               <div class="funding-details">
+                  <h5>Send Feedback & Suggestions</h5>
+                  <p>Rate the player, report bugs or request features</p>
+               </div>
+               <i class="fa fa-angle-right"></i>
+            </button>
+
             <div class="funding-options-list">
-               <a href="https://buymeacoffee.com" target="_blank" rel="noopener"
-                  class="funding-option-card coffee-theme">
+               <div target="_blank" rel="noopener" class="funding-option-card coffee-theme">
                   <span class="funding-emoji">☕</span>
                   <div class="funding-details">
                      <h5>Buy Me a Coffee</h5>
                      <p>Support the project with a $3 coffee contribution</p>
                   </div>
-                  <i class="fa fa-external-link"></i>
-               </a>
 
-               <button id="modal_feedback_option_btn" type="button" class="funding-option-card feedback-theme-btn">
-                  <span class="funding-emoji">💬</span>
-                  <div class="funding-details">
-                     <h5>Send Feedback & Suggestions</h5>
-                     <p>Rate the player, report bugs or request features</p>
-                  </div>
-                  <i class="fa fa-angle-right"></i>
-               </button>
+               </div>
 
                <div class="upi-card">
                   <div class="upi-title">
                      <i class="fa fa-qrcode"></i> <span>Scan & Pay via PhonePe / Any UPI App</span>
                   </div>
                   <div class="upi-qr-wrapper">
-                     <img src="images/phonepe_qr.png" alt="PhonePe QR Code - B Venu" class="upi-qr-image"
+                     <img src="images/phonepe_qr_square.png" alt="PhonePe QR Code - B Venu" class="upi-qr-image"
                         title="Scan & Pay using PhonePe, Google Pay, Paytm or any UPI App">
                      <div class="upi-qr-badge">
                         <i class="fa-solid fa-bolt"></i> Instant UPI Support (B VENU)
@@ -467,6 +475,10 @@
                      <button id="copy_upi_btn" class="copy-upi-btn"><i class="fa fa-copy"></i> Copy UPI</button>
                   </div>
                </div>
+
+
+
+
             </div>
          </div>
       </div>
@@ -499,7 +511,6 @@
    <!-- Floating AI DJ Chat Widget Launcher -->
    <button id="floating_chat_btn" class="floating-chat-btn" title="Chat with Sangeetham AI">
       <i class="fa-solid fa-brain"></i>
-      <span class="floating-chat-label">AI Search</span>
       <span class="floating-pulse-ring"></span>
    </button>
 

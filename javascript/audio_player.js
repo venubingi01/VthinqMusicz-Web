@@ -1,4 +1,7 @@
-// JavaScript Audio Player with JioSaavn Open Source API & Real Beat Detection Visualizer
+// Copyright (c) 2026 Vthinq. All rights reserved.
+// Developer name : Venu Bingi
+// This AI Music Player use JioSaavn Open Source API for music streaming.
+
 
 // HTML entity decoder helper
 function decodeHTMLEntities(text) {
@@ -7,120 +10,6 @@ function decodeHTMLEntities(text) {
 	textarea.innerHTML = text;
 	return textarea.value;
 }
-
-// Synced Karaoke Lyrics Service
-var LyricsService = {
-	baseUrl: 'https://test-0k.onrender.com/lyrics/',
-	cache: {},
-	currentTimedLyrics: [],
-
-	cleanQuery: function (str) {
-		if (!str) return "";
-		return str
-			.replace(/\(From "[^"]*"\)/gi, "")
-			.replace(/\(feat\.[^)]*\)/gi, "")
-			.replace(/-\s*New Version/gi, "")
-			.replace(/-\s*Original/gi, "")
-			.replace(/•.*/gi, "")
-			.trim();
-	},
-
-	fetchLyrics: async function (artist, songTitle) {
-		var cleanArtist = this.cleanQuery(artist);
-		var cleanTitle = this.cleanQuery(songTitle);
-		var cacheKey = (cleanArtist + "_" + cleanTitle).toLowerCase();
-
-		if (this.cache[cacheKey]) {
-			return this.cache[cacheKey];
-		}
-
-		// 1. Primary: fetch with artist and song title
-		try {
-			var url = this.baseUrl + "?artist=" + encodeURIComponent(cleanArtist) + "&song=" + encodeURIComponent(cleanTitle) + "&timestamps=true";
-			var res = await fetch(url);
-			if (res.ok) {
-				var data = await res.json();
-				if (data && data.status === "success" && data.data) {
-					this.cache[cacheKey] = data.data;
-					return data.data;
-				}
-			}
-		} catch (e1) {
-			console.warn("Lyrics primary fetch error:", e1);
-		}
-
-		// 2. Secondary fallback: fetch with song title only (no artist param — empty string causes 400)
-		try {
-			var url2 = this.baseUrl + "?song=" + encodeURIComponent(cleanTitle) + "&timestamps=true";
-			var res2 = await fetch(url2);
-			if (res2.ok) {
-				var data2 = await res2.json();
-				if (data2 && data2.status === "success" && data2.data) {
-					this.cache[cacheKey] = data2.data;
-					return data2.data;
-				}
-			}
-		} catch (e2) {
-			console.warn("Lyrics secondary fetch error:", e2);
-		}
-
-		// 3. Tertiary fallback: with artist and song fetch with timestamp false
-		try {
-			var url3 = this.baseUrl + "?artist=" + encodeURIComponent(cleanArtist) + "&song=" + encodeURIComponent(cleanTitle) + "&timestamps=false";
-			var res3 = await fetch(url3);
-			if (res3.ok) {
-				var data3 = await res3.json();
-				if (data3 && data3.status === "success" && data3.data) {
-					this.cache[cacheKey] = data3.data;
-					data3.data.timestamps = false;
-					return data3.data;
-				}
-			}
-		} catch (e3) {
-			console.warn("Lyrics tertiary fetch error:", e3);
-		}
-
-
-		return null;
-	},
-
-	parseLrcText: function (lrcText) {
-		console.log('lyrics', lrcText);
-		if (!lrcText) return [];
-		var lines = lrcText.split("\n");
-		var result = [];
-		var regExp = /\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/;
-
-		lines.forEach(function (line, idx) {
-			var matches = regExp.exec(line.trim());
-			if (matches) {
-				var mins = parseInt(matches[1], 10);
-				var secs = parseInt(matches[2], 10);
-				var ms = parseInt(matches[3].padEnd(3, "0"), 10);
-				var startTime = (mins * 60 + secs) * 1000 + ms;
-				var text = matches[4].trim();
-				if (text) {
-					result.push({
-						id: "lrc_" + idx,
-						start_time: startTime,
-						end_time: 0,
-						text: text
-					});
-				}
-			}
-		});
-
-		for (var i = 0; i < result.length; i++) {
-			if (i < result.length - 1) {
-				result[i].end_time = result[i + 1].start_time;
-			} else {
-				result[i].end_time = result[i].start_time + 5000;
-			}
-		}
-
-		return result;
-	}
-};
 
 // JioSaavn API Service
 var SaavnAPI = {
@@ -1429,12 +1318,44 @@ function initAudioPlayer() {
 	var playlist_status = document.getElementById("playlist_status");
 	var seeking = false;
 
+	// Mobile Menu Button & Popup Handler (<= 768px)
+	var mobileMenuBtn = document.getElementById("mobile_menu_btn");
+	var menuContainer = document.querySelector(".menu-container");
+
+	function toggleMobileMenu(forceState) {
+		if (!menuContainer || !mobileMenuBtn) return;
+		var shouldOpen = typeof forceState === "boolean" ? forceState : !menuContainer.classList.contains("open");
+		menuContainer.classList.toggle("open", shouldOpen);
+		mobileMenuBtn.classList.toggle("active", shouldOpen);
+		var icon = mobileMenuBtn.querySelector("i");
+		if (icon) {
+			icon.className = shouldOpen ? "fa fa-times" : "fa fa-bars";
+		}
+	}
+
+	if (mobileMenuBtn) {
+		mobileMenuBtn.addEventListener("click", function (e) {
+			e.stopPropagation();
+			toggleMobileMenu();
+		});
+	}
+
+	// Close mobile menu when clicking outside
+	document.addEventListener("click", function (e) {
+		if (menuContainer && menuContainer.classList.contains("open")) {
+			if (!menuContainer.contains(e.target) && e.target !== mobileMenuBtn && !mobileMenuBtn.contains(e.target)) {
+				toggleMobileMenu(false);
+			}
+		}
+	});
+
 	// Tab Clicks Event Listeners
 	document.addEventListener("click", function (e) {
 		var target = e.target.closest("[data-tab]");
 		if (target) {
 			var tab = target.getAttribute("data-tab");
 			switchTab(tab);
+			toggleMobileMenu(false);
 		}
 	});
 
@@ -1712,9 +1633,57 @@ function initAudioPlayer() {
 	});
 
 	if (seekslider) {
-		seekslider.addEventListener("mousedown", function (event) { seeking = true; seek(event); });
-		seekslider.addEventListener("mousemove", function (event) { if (seeking) seek(event); });
-		seekslider.addEventListener("mouseup", function () { seeking = false; });
+		// Native input & change events for instant responsiveness across all desktop and mobile browsers
+		seekslider.addEventListener("input", function () {
+			seeking = true;
+			if (audio.duration) {
+				var pct = parseFloat(this.value) / 500;
+				audio.currentTime = pct * audio.duration;
+				updateSyncedLyrics();
+			}
+		});
+
+		seekslider.addEventListener("change", function () {
+			seeking = false;
+			if (audio.duration) {
+				var pct = parseFloat(this.value) / 500;
+				audio.currentTime = pct * audio.duration;
+				updateSyncedLyrics();
+			}
+		});
+
+		// Mouse events for desktop dragging
+		seekslider.addEventListener("mousedown", function (event) {
+			seeking = true;
+			seek(event);
+		});
+		window.addEventListener("mousemove", function (event) {
+			if (seeking) {
+				seek(event);
+			}
+		});
+		window.addEventListener("mouseup", function () {
+			seeking = false;
+		});
+
+		// Touch events for mobile scrub dragging
+		seekslider.addEventListener("touchstart", function (event) {
+			seeking = true;
+			seek(event);
+		}, { passive: true });
+
+		window.addEventListener("touchmove", function (event) {
+			if (seeking) {
+				seek(event);
+			}
+		}, { passive: true });
+
+		window.addEventListener("touchend", function () {
+			seeking = false;
+		});
+		window.addEventListener("touchcancel", function () {
+			seeking = false;
+		});
 	}
 
 	if (volumeslider) {
@@ -1843,15 +1812,25 @@ function initAudioPlayer() {
 	}
 
 	function seek(event) {
-		if (!seekslider) return;
-		var rect = seekslider.getBoundingClientRect();
-		var offsetX = event.clientX - rect.left;
-		var pct = Math.max(0, Math.min(1, offsetX / rect.width));
-		if (audio.duration) {
-			audio.currentTime = pct * audio.duration;
-			seekslider.value = pct * 500;
-			updateSyncedLyrics();
+		if (!seekslider || !audio.duration) return;
+		var clientX = event.clientX;
+		if (event.touches && event.touches.length > 0) {
+			clientX = event.touches[0].clientX;
+		} else if (event.changedTouches && event.changedTouches.length > 0) {
+			clientX = event.changedTouches[0].clientX;
 		}
+		if (clientX === undefined) {
+			var pct = parseFloat(seekslider.value) / 500;
+			audio.currentTime = pct * audio.duration;
+			updateSyncedLyrics();
+			return;
+		}
+		var rect = seekslider.getBoundingClientRect();
+		var offsetX = clientX - rect.left;
+		var pct = Math.max(0, Math.min(1, offsetX / rect.width));
+		audio.currentTime = pct * audio.duration;
+		seekslider.value = pct * 500;
+		updateSyncedLyrics();
 	}
 
 	function setvolume() {

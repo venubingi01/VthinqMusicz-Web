@@ -1,5 +1,5 @@
 // Service Worker for Sangeetham AI Music Player PWA
-const CACHE_NAME = 'sangeetham-v3.0';
+const CACHE_NAME = 'sangeetham-v3.1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -8,8 +8,10 @@ const ASSETS_TO_CACHE = [
   './font-awesome/css/all.min.css',
   './font-awesome/css/v4-shims.min.css',
   './font-awesome/css/font-awesome.min.css',
+  './javascript/lyrics_service.js',
   './javascript/audio_player.js',
   './javascript/ai_chat.js',
+  './javascript/pwa_install.js',
   './javascript/crypto-js.min.js',
   './manifest.json',
   './icons/icon-192.png',
