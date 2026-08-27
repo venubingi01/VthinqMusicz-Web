@@ -3393,8 +3393,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 	.floating-chat-btn {
 		right: 15px;
 		bottom: 140px;
-		padding: 12px 13px;
-		font-size: 16px;
+		padding: 14px;
 	}
 
 	.chat-screen-layout {
@@ -4051,5 +4050,6 @@ input[type='range']::-webkit-slider-thumb:hover {
 
 	.view-screen {
 		top: 90px;
+		bottom: 70px;
 	}
 }
