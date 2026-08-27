@@ -2935,14 +2935,24 @@ input[type='range']::-webkit-slider-thumb:hover {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
-	cursor: pointer;
+	cursor: grab;
+	touch-action: none;
+	user-select: none;
+	-webkit-user-select: none;
 	box-shadow: 0 6px 25px rgba(255, 45, 73, 0.5);
-	transition: all 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+	transition: box-shadow 0.3s ease, transform 0.2s ease;
 }
 
 .floating-chat-btn:hover {
-	transform: translateY(-3px) scale(1.05);
+	transform: scale(1.06);
 	box-shadow: 0 10px 30px rgba(255, 45, 73, 0.7);
+}
+
+.floating-chat-btn.is-dragging {
+	cursor: grabbing !important;
+	transform: scale(1.12) !important;
+	box-shadow: 0 14px 38px rgba(255, 45, 73, 0.85) !important;
+	transition: none !important;
 }
 
 .floating-pulse-ring {
@@ -3383,8 +3393,8 @@ input[type='range']::-webkit-slider-thumb:hover {
 	.floating-chat-btn {
 		right: 15px;
 		bottom: 140px;
-		padding: 8px 14px;
-		font-size: 11px;
+		padding: 12px 13px;
+		font-size: 16px;
 	}
 
 	.chat-screen-layout {

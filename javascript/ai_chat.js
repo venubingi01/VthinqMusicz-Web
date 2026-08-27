@@ -9,10 +9,104 @@ function initAIChatBot() {
 	var chatVoiceBtn = document.getElementById("chat_voice_btn");
 	var chatMessages = document.getElementById("chat_messages_container");
 
+	// Free Drag & Drop Controller for Floating AI Chat Button across Entire Screen
 	if (floatingChatBtn) {
-		floatingChatBtn.addEventListener("click", function () {
-			if (typeof switchTab === "function") {
-				switchTab("ai_chat");
+		var isDragging = false;
+		var hasMoved = false;
+		var startX = 0;
+		var startY = 0;
+		var initialBtnLeft = 0;
+		var initialBtnTop = 0;
+		var dragThreshold = 6;
+
+		function getClientCoords(e) {
+			if (e.touches && e.touches.length > 0) {
+				return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+			} else if (e.changedTouches && e.changedTouches.length > 0) {
+				return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+			}
+			return { x: e.clientX, y: e.clientY };
+		}
+
+		function startDrag(e) {
+			if (e.type === "mousedown" && e.button !== 0) return;
+			var coords = getClientCoords(e);
+			var rect = floatingChatBtn.getBoundingClientRect();
+			isDragging = true;
+			hasMoved = false;
+			startX = coords.x;
+			startY = coords.y;
+			initialBtnLeft = rect.left;
+			initialBtnTop = rect.top;
+
+			// Switch to absolute left/top positioning relative to viewport
+			floatingChatBtn.style.right = "auto";
+			floatingChatBtn.style.bottom = "auto";
+			floatingChatBtn.style.left = initialBtnLeft + "px";
+			floatingChatBtn.style.top = initialBtnTop + "px";
+			floatingChatBtn.classList.add("is-dragging");
+		}
+
+		function onDragMove(e) {
+			if (!isDragging) return;
+			var coords = getClientCoords(e);
+			var dx = coords.x - startX;
+			var dy = coords.y - startY;
+
+			if (Math.abs(dx) > dragThreshold || Math.abs(dy) > dragThreshold) {
+				hasMoved = true;
+			}
+
+			if (hasMoved) {
+				if (e.cancelable) e.preventDefault();
+				var btnWidth = floatingChatBtn.offsetWidth || 50;
+				var btnHeight = floatingChatBtn.offsetHeight || 50;
+				var maxLeft = window.innerWidth - btnWidth - 8;
+				var maxTop = window.innerHeight - btnHeight - 8;
+				var newLeft = Math.max(8, Math.min(maxLeft, initialBtnLeft + dx));
+				var newTop = Math.max(8, Math.min(maxTop, initialBtnTop + dy));
+
+				floatingChatBtn.style.left = newLeft + "px";
+				floatingChatBtn.style.top = newTop + "px";
+			}
+		}
+
+		function endDrag() {
+			if (!isDragging) return;
+			isDragging = false;
+			floatingChatBtn.classList.remove("is-dragging");
+
+			if (!hasMoved) {
+				// Clean tap or click without drag - open AI Chat tab
+				if (typeof switchTab === "function") {
+					switchTab("ai_chat");
+				}
+			}
+		}
+
+		// Mouse drag listeners
+		floatingChatBtn.addEventListener("mousedown", startDrag);
+		window.addEventListener("mousemove", onDragMove);
+		window.addEventListener("mouseup", endDrag);
+
+		// Touch drag listeners
+		floatingChatBtn.addEventListener("touchstart", startDrag, { passive: false });
+		window.addEventListener("touchmove", onDragMove, { passive: false });
+		window.addEventListener("touchend", endDrag);
+		window.addEventListener("touchcancel", endDrag);
+
+		// Re-clamp position on window resize or device orientation change
+		window.addEventListener("resize", function () {
+			if (floatingChatBtn.style.left && floatingChatBtn.style.top) {
+				var btnWidth = floatingChatBtn.offsetWidth || 50;
+				var btnHeight = floatingChatBtn.offsetHeight || 50;
+				var currentLeft = parseFloat(floatingChatBtn.style.left) || 0;
+				var currentTop = parseFloat(floatingChatBtn.style.top) || 0;
+				var maxLeft = window.innerWidth - btnWidth - 8;
+				var maxTop = window.innerHeight - btnHeight - 8;
+
+				floatingChatBtn.style.left = Math.max(8, Math.min(maxLeft, currentLeft)) + "px";
+				floatingChatBtn.style.top = Math.max(8, Math.min(maxTop, currentTop)) + "px";
 			}
 		});
 	}
