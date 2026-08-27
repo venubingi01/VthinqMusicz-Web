@@ -25,10 +25,10 @@
    <link href="font-awesome/css/v4-shims.min.css" rel="stylesheet">
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
    <link rel="stylesheet" href="css/icons.min.css">
-   <link href="css/style.css?v=20" rel="stylesheet" type="text/css">
+   <link href="css/style.css?v=21" rel="stylesheet" type="text/css">
    <script type="text/javascript" src="javascript/crypto-js.min.js"></script>
    <script type="text/javascript" src="javascript/lyrics_service.js?v=2"></script>
-   <script type="text/javascript" src="javascript/audio_player.js?v=19"></script>
+   <script type="text/javascript" src="javascript/audio_player.js?v=20"></script>
    <script type="text/javascript" src="javascript/ai_chat.js?v=10"></script>
    <script type="text/javascript" src="javascript/pwa_install.js?v=9"></script>
    <script>
@@ -286,7 +286,10 @@
    <!-- Dedicated Synced Lyrics View (Apple Music Style Split View) -->
    <div id="lyrics_view" class="view-screen">
       <div class="innerscreen lyrics-split-layout">
-
+         <!-- back button -->
+         <div id="lyrics_back_btn" class="back-btn">
+            <i class="fa-solid fa-arrow-left"></i>
+         </div>
          <!-- Left Column: Ambient Artwork & Metadata -->
          <div class="lyrics-left-panel">
             <div class="lyrics-art-wrapper">
@@ -581,7 +584,7 @@
    </div>
 
    <div id="container" class="audio-container-canvas">
-      <div class="player-meta-container">
+      <div class="player-meta-container" id="player-meta-container">
          <img id="player_thumb" class="player-thumb"
             src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80"
             alt="Track Cover">

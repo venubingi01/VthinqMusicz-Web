@@ -1233,19 +1233,20 @@ function switchTab(tabName, skipHashUpdate) {
 	var lyricsView = document.getElementById("lyrics_view");
 	var chatView = document.getElementById("chat_view");
 	var albumView = document.getElementById("album_view");
+	var header = document.getElementById("header");
 
 	if (homeView) homeView.classList.remove("active");
 	if (searchView) searchView.classList.remove("active");
 	if (lyricsView) lyricsView.classList.remove("active");
 	if (chatView) chatView.classList.remove("active");
 	if (albumView) albumView.classList.remove("active");
-
+	if (header) header.classList.remove("hide-mobile");
 	var floatingChatBtn = document.getElementById("floating_chat_btn");
 	if (floatingChatBtn) {
 		floatingChatBtn.classList.toggle("active", tabName === "ai_chat");
 		var chatIcon = floatingChatBtn.querySelector("i");
 		if (chatIcon) {
-			chatIcon.className = tabName === "ai_chat" ? "fa-solid fa-xmark" : "fa-solid fa-brain";
+			chatIcon.className = tabName === "ai_chat" ? "fa-solid fa-xmark" : "fa-solid fa-music";
 		}
 		floatingChatBtn.setAttribute("title", tabName === "ai_chat" ? "Close AI Chat (Home)" : "Chat with Sangeetham AI");
 	}
@@ -1256,6 +1257,7 @@ function switchTab(tabName, skipHashUpdate) {
 	} else if (tabName === "lyrics") {
 		if (lyricsView) lyricsView.classList.add("active");
 		loadLyricsForCurrentSong();
+		if (header) header.classList.add("hide-mobile");
 		if (!skipHashUpdate) {
 			var cur = playlist && playlist[playlist_index];
 			if (cur && cur.title) {
@@ -1368,6 +1370,25 @@ function initAudioPlayer() {
 			toggleMobileMenu(false);
 		}
 	});
+
+	// Open Lyrics Screen on Player Meta Container Click in Mobile Screens (<= 900px)
+	var playerMetaContainer = document.getElementById("player-meta-container") || document.querySelector(".player-meta-container");
+	if (playerMetaContainer) {
+		playerMetaContainer.addEventListener("click", function () {
+			if (window.innerWidth <= 900) {
+				switchTab("lyrics");
+			}
+		});
+	}
+
+	// Back Button from Lyrics View
+	var lyricsBackBtn = document.getElementById("lyrics_back_btn");
+	if (lyricsBackBtn) {
+		lyricsBackBtn.addEventListener("click", function (e) {
+			e.stopPropagation();
+			switchTab("home");
+		});
+	}
 
 	// Controls
 	var styleSelect = document.getElementById("style_select");
