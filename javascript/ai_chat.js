@@ -77,9 +77,16 @@ function initAIChatBot() {
 			floatingChatBtn.classList.remove("is-dragging");
 
 			if (!hasMoved) {
-				// Clean tap or click without drag - open AI Chat tab
+				// Clean tap or click without drag - toggle between AI Chat and Home
+				var chatView = document.getElementById("chat_view");
+				var isChatActive = (chatView && chatView.classList.contains("active")) || (typeof activeTab !== "undefined" && activeTab === "ai_chat");
+
 				if (typeof switchTab === "function") {
-					switchTab("ai_chat");
+					if (isChatActive) {
+						switchTab("home");
+					} else {
+						switchTab("ai_chat");
+					}
 				}
 			}
 		}

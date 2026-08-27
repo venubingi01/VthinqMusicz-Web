@@ -1240,6 +1240,16 @@ function switchTab(tabName, skipHashUpdate) {
 	if (chatView) chatView.classList.remove("active");
 	if (albumView) albumView.classList.remove("active");
 
+	var floatingChatBtn = document.getElementById("floating_chat_btn");
+	if (floatingChatBtn) {
+		floatingChatBtn.classList.toggle("active", tabName === "ai_chat");
+		var chatIcon = floatingChatBtn.querySelector("i");
+		if (chatIcon) {
+			chatIcon.className = tabName === "ai_chat" ? "fa-solid fa-xmark" : "fa-solid fa-brain";
+		}
+		floatingChatBtn.setAttribute("title", tabName === "ai_chat" ? "Close AI Chat (Home)" : "Chat with Sangeetham AI");
+	}
+
 	if (tabName === "home") {
 		if (homeView) homeView.classList.add("active");
 		if (!skipHashUpdate) updateUrlHash("home");
