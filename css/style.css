@@ -4154,6 +4154,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 	.view-screen {
 		top: 68px;
 		bottom: 70px;
+		padding-bottom: 0;
 	}
 
 	#container {
