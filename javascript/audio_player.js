@@ -2315,7 +2315,7 @@ function initAudioPlayer() {
 
 	if (topFundBtn) topFundBtn.addEventListener("click", function () { openModal(fundingModal); });
 	if (footerFundBtn) footerFundBtn.addEventListener("click", function () { openModal(fundingModal); });
-	if (closeFundBtn) closeFundBtn.addEventListener("click", function () { closeModal(fundingModal); });
+	if (closeFundBtn) closeFundBtn.addEventListener("click", function () { closeModal(fundingModal); switchTab("search") });
 
 	var modalFbOptionBtn = document.getElementById("modal_feedback_option_btn");
 	if (modalFbOptionBtn) {
