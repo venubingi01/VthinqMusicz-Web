@@ -183,6 +183,7 @@ body {
 	left: 0;
 	right: 0;
 	top: 80px;
+	z-index: 101;
 }
 
 .menu-container .header.nav-tabs {
@@ -240,7 +241,7 @@ body {
 .view-screen {
 	display: none;
 	/* min-height: 90%; */
-	top: 139px;
+	top: 80px;
 	position: absolute;
 	left: 0;
 	right: 0;
@@ -248,8 +249,9 @@ body {
 	overflow: auto;
 	-webkit-overflow-scrolling: touch;
 	scroll-behavior: smooth;
-	bottom: 140px;
+	bottom: 120px;
 	z-index: 100;
+	padding-top: 60px;
 }
 
 #chat_view {
@@ -260,6 +262,7 @@ body {
 	background-color: var(--bg-dark);
 	background-image: radial-gradient(circle at 15% 15%, rgba(255, 45, 73, 0.15) 0%, transparent 40%), radial-gradient(circle at 85% 75%, rgba(0, 240, 255, 0.12) 0%, transparent 45%), radial-gradient(circle at 50% 50%, rgba(255, 208, 15, 0.05) 0%, transparent 55%);
 	z-index: 10000;
+	padding-top: 0;
 }
 
 #lyrics_view {}
@@ -2857,6 +2860,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 	padding: 14px 18px;
 	background: rgba(255, 255, 255, 0.03);
 	border-top: 1px solid var(--border-glass);
+	width: 100%;
 }
 
 .chat-input-wrapper {
@@ -3907,6 +3911,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 	border: 1px solid transparent;
 	transition: all 0.2s ease;
 	cursor: pointer;
+	gap: 0 10px;
 }
 
 .fav-song-row:hover {
