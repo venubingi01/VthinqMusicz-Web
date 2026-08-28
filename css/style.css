@@ -1922,6 +1922,15 @@ input[type='range']::-webkit-slider-thumb:hover {
 	transition: opacity 0.3s ease;
 }
 
+#funding_modal {
+	display: block;
+	overflow: auto;
+}
+
+#funding_modal .modal-card {
+	margin: 50px auto;
+}
+
 .modal-overlay.active {
 	opacity: 1;
 	pointer-events: auto;
