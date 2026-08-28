@@ -4377,7 +4377,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 		/* flex: 1; */
 		display: flex;
 		/* flex: 1; */
-		width: 300px;
+		width: 350px;
 		/* height: 60%; */
 	}
 
