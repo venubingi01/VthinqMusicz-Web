@@ -9,6 +9,14 @@ function initAIChatBot() {
 	var chatVoiceBtn = document.getElementById("chat_voice_btn");
 	var chatMessages = document.getElementById("chat_messages_container");
 
+	var closeChatBtn = document.getElementById("close_chat_btn");
+	closeChatBtn.addEventListener("click", function () {
+		var chatView = document.getElementById("chat_view");
+		chatView.classList.remove("active");
+		//swith to previous view
+		switchTab("home");
+	});
+
 	// Free Drag & Drop Controller for Floating AI Chat Button across Entire Screen
 	if (floatingChatBtn) {
 		var isDragging = false;
@@ -82,11 +90,7 @@ function initAIChatBot() {
 				var isChatActive = (chatView && chatView.classList.contains("active")) || (typeof activeTab !== "undefined" && activeTab === "ai_chat");
 
 				if (typeof switchTab === "function") {
-					if (isChatActive) {
-						switchTab("home");
-					} else {
-						switchTab("ai_chat");
-					}
+					switchTab("ai_chat");
 				}
 			}
 		}
@@ -143,6 +147,10 @@ function initAIChatBot() {
 			songResults.forEach(function (song) {
 				var card = document.createElement("div");
 				card.className = "chat-song-card";
+				var isFav = (typeof FavoritesManager !== "undefined") && FavoritesManager.isFavorite(song);
+				var favIcon = isFav ? "fa fa-heart" : "fa fa-heart-o";
+				var favActive = isFav ? " active" : "";
+
 				card.innerHTML = `
 					<div class="chat-song-info-group">
 						<img class="chat-song-thumb" src="${song.cover || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80'}" alt="${song.title}">
@@ -151,8 +159,21 @@ function initAIChatBot() {
 							<div class="chat-song-artist">${song.artist} • ${song.durationStr || '3:30'}</div>
 						</div>
 					</div>
-					<button class="chat-play-song-btn" title="Play Now"><i class="fa fa-play"></i> Play</button>
+					<div style="display:flex;align-items:center;gap:4px;">
+						<button class="chat-fav-song-btn${favActive}" data-fav-song-title="${song.title.replace(/"/g, '&quot;')}" data-fav-song-artist="${(song.artist || '').replace(/"/g, '&quot;')}" title="${isFav ? 'Remove from Favorites' : 'Add to Favorites'}"><i class="${favIcon}"></i></button>
+						<button class="chat-play-song-btn" title="Play Now"><i class="fa fa-play"></i> Play</button>
+					</div>
 				`;
+
+				var favBtn = card.querySelector(".chat-fav-song-btn");
+				if (favBtn) {
+					favBtn.onclick = function (e) {
+						e.stopPropagation();
+						if (typeof FavoritesManager !== "undefined") {
+							FavoritesManager.toggleFavorite(song);
+						}
+					};
+				}
 
 				var playBtn = card.querySelector(".chat-play-song-btn");
 				if (playBtn) {

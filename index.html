@@ -87,6 +87,7 @@
          <div class="header nav-tabs">
             <div class="col active" data-tab="home"><i class="fa fa-home"></i> <span>Home</span></div>
             <div class="col" data-tab="search"><i class="fa fa-search"></i> <span>Search</span></div>
+            <div class="col" data-tab="favorites"><i class="fa fa-heart"></i> <span>Favorites</span></div>
             <div class="col" data-tab="ai_chat"><i class="fa-solid fa-brain"></i> <span>Sangeetham AI</span></div>
             <div class="col" data-tab="lyrics"><i class="fa fa-quote-right"></i> <span>Lyrics</span></div>
             <div class="clear"></div>
@@ -177,13 +178,14 @@
 
    <!-- Dedicated Album View Screen -->
    <div id="album_view" class="view-screen">
+      <div class="album-header-bar">
+         <button id="album_back_btn" class="album-back-btn" title="Back to Search"><i class="fa fa-arrow-left"></i>
+            Back</button>
+         <button id="share_album_btn" class="album-share-btn" title="Share Album Link"><i
+               class="fa-solid fa-share-nodes"></i> Share Album</button>
+      </div>
       <div class="innerscreen album-view-layout">
-         <div class="album-header-bar">
-            <button id="album_back_btn" class="album-back-btn" title="Back to Search"><i class="fa fa-arrow-left"></i>
-               Back</button>
-            <button id="share_album_btn" class="album-share-btn" title="Share Album Link"><i
-                  class="fa-solid fa-share-nodes"></i> Share Album</button>
-         </div>
+
          <div class="album-hero">
             <div class="album-cover-wrapper">
                <div class="album-cover-glow" id="album_cover_glow"></div>
@@ -220,6 +222,36 @@
       </div>
    </div>
 
+   <!-- Dedicated Favorites View Screen -->
+   <div id="favorites_view" class="view-screen">
+      <div class="innerscreen favorites-view-layout">
+         <div class="favorites-hero">
+            <div class="favorites-hero-icon-box">
+               <i class="fa-solid fa-heart favorites-hero-icon"></i>
+            </div>
+            <div class="favorites-hero-meta">
+               <span class="favorites-badge"><i class="fa-solid fa-sparkles"></i> YOUR LIBRARY</span>
+               <h2>Favorite Songs</h2>
+               <p>Your personalized collection of loved tracks • <span id="fav_count_badge">0 Songs</span></p>
+               <div class="favorites-action-buttons">
+                  <button id="fav_play_all_btn" class="fav-play-btn"><i class="fa fa-play"></i> Play All</button>
+                  <button id="fav_shuffle_btn" class="fav-secondary-btn"><i class="fa fa-random"></i> Shuffle</button>
+                  <button id="fav_clear_btn" class="fav-secondary-btn fav-danger-btn" title="Clear All Favorites"><i
+                        class="fa fa-trash"></i> Clear All</button>
+               </div>
+            </div>
+         </div>
+         <div class="favorites-list-container">
+            <div class="favorites-list-heading">
+               <h3><i class="fa-solid fa-list-ul"></i> Saved Tracks</h3>
+            </div>
+            <div id="favorites_songs_list" class="favorites-songs-list">
+               <!-- Dynamic favorites list -->
+            </div>
+         </div>
+      </div>
+   </div>
+
    <!-- AI DJ Music Assistant Chat View -->
    <div id="chat_view" class="view-screen">
       <div class="innerscreen chat-screen-layout">
@@ -239,8 +271,9 @@
                </div>
             </div>
             <div class="chat-actions">
-               <button id="clear_chat_btn" class="chat-action-btn" title="Clear conversation"><i
-                     class="fa fa-trash-o"></i> Clear</button>
+               <!-- close button should close the chatwindow-->
+               <button id="close_chat_btn" class="chat-action-btn" title="Close Chat"><i
+                     class="fa fa-times"></i></button>
             </div>
          </div>
 
@@ -262,11 +295,13 @@
                         Lo-Fi</button>
                      <button class="chat-chip" data-prompt="Best romantic melodies of A.R. Rahman">❤️ A.R. Rahman
                         Hits</button>
+
                   </div>
                </div>
             </div>
          </div>
-
+         <button id="clear_chat_btn" class="chat-action-btn" title="Clear conversation"><i class="fa fa-trash-o"></i>
+            Clear Chat</button>
          <!-- Chat Input Dock -->
          <div class="chat-input-bar">
             <div class="chat-input-wrapper">
@@ -306,6 +341,9 @@
             </div>
 
             <div class="lyrics-controls-group">
+               <button id="lyrics_fav_btn" class="lyrics-fav-action-btn" title="Add to Favorites">
+                  <i class="fa fa-heart-o"></i> <span>Favorite</span>
+               </button>
                <div class="lyrics-live-badge" id="visualizer_toggle"><i class="fa-brands fa-soundcloud"></i>
                   <span>Visualizer</span>
                   <span class="floating-pulse-ring"></span>
@@ -314,6 +352,18 @@
                   <i class="fa-solid fa-share-nodes"></i> <span>Share</span>
                </button>
             </div>
+
+
+            <footer class="app-footer">
+               <div class="footer-container">
+                  <div class="dev-credits">
+                     <span class="dev-tag"><i class="fa fa-code"></i> Made with ❤️ by <a style="text-decoration: none;"
+                           href="https://www.linkedin.com/in/venu-bingi-bbb9689a" target="_blank"
+                           rel="noopener"><strong>Venu
+                              Bingi</strong></a></span>
+                  </div>
+               </div>
+            </footer>
          </div>
 
          <!-- Right Column: Karaoke Synced Lyrics Container -->
@@ -325,16 +375,6 @@
                </div>
             </div>
          </div>
-         <footer class="app-footer">
-            <div class="footer-container">
-               <div class="dev-credits">
-                  <span class="dev-tag"><i class="fa fa-code"></i> Made with ❤️ by <a style="text-decoration: none;"
-                        href="https://www.linkedin.com/in/venu-bingi-bbb9689a" target="_blank"
-                        rel="noopener"><strong>Venu
-                           Bingi</strong></a></span>
-               </div>
-            </div>
-         </footer>
       </div>
 
 
@@ -360,7 +400,7 @@
                   <p id="modal_lyrics_artist">Artist</p>
                </div>
             </div>
-            <button id="close_lyrics_modal" class="close-modal-btn"><i class="fa fa-times"></i></button>
+            <button id="close_lyrics_modal" class="glow-btn"><i class="fa fa-times"></i></button>
          </div>
          <div id="modal_lyrics_container" class="lyrics-modal-scroll">
             <div class="no-lyrics-placeholder"><i class="fa fa-music"></i> Loading lyrics...</div>
@@ -435,7 +475,7 @@
                <div class="dev-avatar">
 
                   <img
-                     src="https://media.licdn.com/dms/image/v2/D5603AQHd3CTjQuHk8A/profile-displayphoto-scale_200_200/B56ZuclnV3K0AY-/0/1767858666205?e=2147483647&v=beta&t=m-LrPt9TFG16DF-0m-gbf_YWp-PsMkqgPPI6_esrmmI"
+                     src="https://media.licdn.com/dms/image/v2/D4D03AQHb40mXB1FOkA/profile-displayphoto-crop_800_800/B4DaBDjoxxJoAI-/0/1787839811993?e=1789603200&v=beta&t=0HH3gvowNMxnl8JZHbqYThp0StBl1Qc2A5TOdQ7TrT0"
                      alt="Developer Avatar">
                </div>
                <div class="dev-info-text">
@@ -593,6 +633,8 @@
          <div class="player-text">
             <h1 id="playlist_status">Select a track to start playback</h1>
          </div>
+         <button id="player_fav_btn" class="player-fav-btn" title="Add to Favorites"><i
+               class="fa fa-heart-o"></i></button>
       </div>
 
       <!-- Single-Line Animated Synced Lyric Bar in Player Dock -->
@@ -620,7 +662,7 @@
          <button id="playpausebtn" class="play" title="Play/Pause"><i class="fa fa-play"></i><i
                class="fa fa-pause"></i></button>
          <button id="next-s" title="Next Track"><i class="fa fa-angle-right"></i></button>
-         <button id="loop_btn" title="Toggle Loop"><i class="fa fa-repeat"></i></button>
+         <!-- <button id="loop_btn" title="Toggle Loop"><i class="fa fa-repeat"></i></button> -->
          <!--   <button id="lyrics_btn" class="lyrics-control-btn" title="Toggle Synced Lyrics Overlay"><i
                   class="fa fa-quote-right"></i> Lyrics</button>
             
@@ -668,6 +710,9 @@
                      class="fa fa-volume-up"></i></button>
             </div>
          </div>
+
+         <button id="expandbtn" class="glow-btn expandbtn" title="expand" onclick="switchTab('lyrics',true)"><i
+               class="fa fa-expand"></i></button>
       </div>
    </div>
    <div id="mp3_player" class="visualizer-hidden">

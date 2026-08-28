@@ -536,6 +536,353 @@ function resizeCanvas() {
 	updateGradient();
 }
 
+// ==========================================================================
+// Favorites Management Module & Persistence
+// ==========================================================================
+var FavoritesManager = {
+	STORAGE_KEY: "sangeetham_favorites",
+
+	getFavorites: function () {
+		try {
+			var raw = localStorage.getItem(this.STORAGE_KEY);
+			if (!raw) return [];
+			var parsed = JSON.parse(raw);
+			return Array.isArray(parsed) ? parsed : [];
+		} catch (e) {
+			console.warn("Error reading favorites:", e);
+			return [];
+		}
+	},
+
+	saveFavorites: function (list) {
+		try {
+			localStorage.setItem(this.STORAGE_KEY, JSON.stringify(list));
+		} catch (e) {
+			console.warn("Error saving favorites:", e);
+		}
+	},
+
+	isFavorite: function (song) {
+		if (!song) return false;
+		var favs = this.getFavorites();
+		return favs.some(function (item) {
+			if (song.id && item.id && song.id === item.id) return true;
+			if (song.file && item.file && song.file === item.file) return true;
+			if (song.title && item.title && song.title.trim().toLowerCase() === item.title.trim().toLowerCase()) {
+				if (!song.artist || !item.artist || song.artist.trim().toLowerCase() === item.artist.trim().toLowerCase()) {
+					return true;
+				}
+			}
+			return false;
+		});
+	},
+
+	toggleFavorite: function (song) {
+		if (!song) return false;
+		var favs = this.getFavorites();
+		var existingIndex = -1;
+
+		for (var i = 0; i < favs.length; i++) {
+			var item = favs[i];
+			if ((song.id && item.id && song.id === item.id) ||
+				(song.file && item.file && song.file === item.file) ||
+				(song.title && item.title && song.title.trim().toLowerCase() === item.title.trim().toLowerCase() &&
+					(!song.artist || !item.artist || song.artist.trim().toLowerCase() === item.artist.trim().toLowerCase()))) {
+				existingIndex = i;
+				break;
+			}
+		}
+
+		var isNowFav = false;
+		if (existingIndex !== -1) {
+			favs.splice(existingIndex, 1);
+			this.saveFavorites(favs);
+			if (typeof showToast === "function") {
+				showToast("💔 Removed from Favorites: " + (song.title || "Track"));
+			}
+			isNowFav = false;
+		} else {
+			var cleanSong = {
+				id: song.id || ("fav_" + Date.now()),
+				title: song.title || "Unknown Title",
+				artist: song.artist || "Unknown Artist",
+				album: song.album || "JioSaavn",
+				cover: song.cover || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80",
+				file: song.file || null,
+				fallbacks: song.fallbacks || [],
+				duration: song.duration || 0,
+				durationStr: song.durationStr || "--:--",
+				has_lyrics: !!song.has_lyrics,
+				lyrics: song.lyrics || null,
+				savedAt: Date.now()
+			};
+			favs.unshift(cleanSong);
+			this.saveFavorites(favs);
+			if (typeof showToast === "function") {
+				showToast("❤️ Added to Favorites: " + cleanSong.title);
+			}
+			isNowFav = true;
+		}
+
+		this.updateAllUI();
+		return isNowFav;
+	},
+
+	clearAll: function () {
+		var count = this.getFavorites().length;
+		if (count === 0) return;
+		this.saveFavorites([]);
+		if (typeof showToast === "function") {
+			showToast("🗑️ Cleared all favorite songs");
+		}
+		this.updateAllUI();
+	},
+
+	updateAllUI: function () {
+		var curSong = (typeof playlist !== "undefined" && playlist && playlist[playlist_index]) || null;
+
+		// 1. Update Bottom Player Dock Favorite Button
+		var dockFavBtn = document.getElementById("player_fav_btn");
+		if (dockFavBtn) {
+			var isFav = this.isFavorite(curSong);
+			dockFavBtn.classList.toggle("active", isFav);
+			var icon = dockFavBtn.querySelector("i");
+			if (icon) {
+				icon.className = isFav ? "fa fa-heart" : "fa fa-heart-o";
+			}
+			dockFavBtn.setAttribute("title", isFav ? "Remove from Favorites" : "Add to Favorites");
+		}
+
+		// 2. Update Lyrics Screen Favorite Button
+		var lyricsFavBtn = document.getElementById("lyrics_fav_btn");
+		if (lyricsFavBtn) {
+			var isFavLyrics = this.isFavorite(curSong);
+			lyricsFavBtn.classList.toggle("active", isFavLyrics);
+			var lIcon = lyricsFavBtn.querySelector("i");
+			if (lIcon) {
+				lIcon.className = isFavLyrics ? "fa fa-heart" : "fa fa-heart-o";
+			}
+			var lSpan = lyricsFavBtn.querySelector("span");
+			if (lSpan) {
+				lSpan.textContent = isFavLyrics ? "Favorited" : "Favorite";
+			}
+		}
+
+		// 3. Update Favorites Screen
+		renderFavoritesScreen();
+
+		// 4. Update heart icons on all rendered cards & list rows
+		var allFavButtons = document.querySelectorAll("[data-fav-song-title]");
+		var self = this;
+		allFavButtons.forEach(function (btn) {
+			var title = btn.getAttribute("data-fav-song-title");
+			var artist = btn.getAttribute("data-fav-song-artist");
+			var checkSong = { title: title, artist: artist };
+			var isF = self.isFavorite(checkSong);
+			btn.classList.toggle("active", isF);
+			var ic = btn.querySelector("i");
+			if (ic) {
+				ic.className = isF ? "fa fa-heart" : "fa fa-heart-o";
+			}
+			btn.setAttribute("title", isF ? "Remove from Favorites" : "Add to Favorites");
+		});
+	}
+};
+
+function renderFavoritesScreen() {
+	var favoritesView = document.getElementById("favorites_view");
+	if (!favoritesView) return;
+
+	var favListContainer = document.getElementById("favorites_songs_list");
+	var countBadge = document.getElementById("fav_count_badge");
+	var favs = FavoritesManager.getFavorites();
+
+	if (countBadge) {
+		countBadge.textContent = favs.length + (favs.length === 1 ? " Song" : " Songs");
+	}
+
+	var playAllBtn = document.getElementById("fav_play_all_btn");
+	var shuffleBtn = document.getElementById("fav_shuffle_btn");
+	var clearBtn = document.getElementById("fav_clear_btn");
+
+	if (playAllBtn) playAllBtn.disabled = (favs.length === 0);
+	if (shuffleBtn) shuffleBtn.disabled = (favs.length === 0);
+	if (clearBtn) clearBtn.disabled = (favs.length === 0);
+
+	if (!favListContainer) return;
+	favListContainer.innerHTML = "";
+
+	if (favs.length === 0) {
+		favListContainer.innerHTML =
+			'<div class="empty-favorites-state">' +
+			'<div class="empty-fav-icon-box">' +
+			'<i class="fa fa-heart-crack"></i>' +
+			'</div>' +
+			'<h3>No Favorite Songs Yet</h3>' +
+			'<p>Explore songs on Home or Search, and tap the <i class="fa fa-heart" style="color:var(--accent-pink)"></i> heart button to save your top tunes here for quick playback anytime!</p>' +
+			'<div class="empty-fav-actions">' +
+			'<button class="explore-btn" onclick="switchTab(\'home\')"><i class="fa fa-home"></i> Explore Home</button>' +
+			'<button class="explore-btn search-explore-btn" onclick="switchTab(\'search\')"><i class="fa fa-search"></i> Search Songs</button>' +
+			'</div>' +
+			'</div>';
+		return;
+	}
+
+	var ul = document.createElement("ul");
+	ul.className = "fav-songs-ul";
+
+	favs.forEach(function (song, idx) {
+		var li = document.createElement("li");
+		li.className = "fav-song-row";
+		var isActive = (playlist === favs && playlist_index === idx);
+		if (isActive) {
+			li.classList.add("active");
+		}
+
+		var trackNum = document.createElement("span");
+		trackNum.className = "track-idx";
+		trackNum.textContent = (idx + 1 < 10 ? "0" : "") + (idx + 1);
+
+		var imgWrapper = document.createElement("div");
+		imgWrapper.className = "song-cover-wrapper";
+		var img = document.createElement("img");
+		img.className = "song-cover";
+		img.src = song.cover || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80";
+		img.alt = song.title;
+		imgWrapper.appendChild(img);
+
+		var infoDiv = document.createElement("div");
+		infoDiv.className = "song-info";
+
+		var titleSpan = document.createElement("span");
+		titleSpan.className = "song-title";
+		titleSpan.textContent = song.title;
+
+		var metaLine = document.createElement("div");
+		metaLine.className = "song-meta-line";
+
+		var artistSpan = document.createElement("span");
+		artistSpan.className = "song-artist";
+		artistSpan.textContent = song.artist;
+		metaLine.appendChild(artistSpan);
+
+		if (song.album && song.album !== "JioSaavn") {
+			var albumTag = document.createElement("span");
+			albumTag.className = "album-tag";
+			albumTag.textContent = song.album;
+			metaLine.appendChild(albumTag);
+		}
+
+		infoDiv.appendChild(titleSpan);
+		infoDiv.appendChild(metaLine);
+
+		var eqIcon = document.createElement("div");
+		eqIcon.className = "eq-indicator";
+		eqIcon.innerHTML = "<span></span><span></span><span></span><span></span>";
+		if (isActive && !audio.paused) {
+			eqIcon.classList.add("playing");
+		}
+
+		var durSpan = document.createElement("span");
+		durSpan.className = "song-duration";
+		durSpan.textContent = song.durationStr || "--:--";
+
+		// Unfavorite heart button
+		var favBtn = document.createElement("button");
+		favBtn.className = "row-fav-btn active";
+		favBtn.title = "Remove from Favorites";
+		favBtn.innerHTML = '<i class="fa fa-heart"></i>';
+		favBtn.onclick = function (e) {
+			e.stopPropagation();
+			FavoritesManager.toggleFavorite(song);
+		};
+
+		var playRowBtn = document.createElement("button");
+		playRowBtn.className = "row-play-btn";
+		playRowBtn.innerHTML = isActive && !audio.paused ? '<i class="fa fa-pause"></i>' : '<i class="fa fa-play"></i>';
+
+		li.appendChild(trackNum);
+		li.appendChild(imgWrapper);
+		li.appendChild(infoDiv);
+		li.appendChild(eqIcon);
+		li.appendChild(durSpan);
+		li.appendChild(favBtn);
+		li.appendChild(playRowBtn);
+
+		li.onclick = function () {
+			playlist = favs;
+			playTrackAtIndex(idx);
+			renderFavoritesScreen();
+		};
+
+		ul.appendChild(li);
+	});
+
+	favListContainer.appendChild(ul);
+}
+
+function initFavoritesEvents() {
+	var playAllBtn = document.getElementById("fav_play_all_btn");
+	if (playAllBtn) {
+		playAllBtn.onclick = function () {
+			var favs = FavoritesManager.getFavorites();
+			if (favs.length > 0) {
+				playlist = favs.slice();
+				playTrackAtIndex(0);
+				renderFavoritesScreen();
+				showToast("▶ Playing all " + favs.length + " favorite songs");
+			}
+		};
+	}
+
+	var shuffleBtn = document.getElementById("fav_shuffle_btn");
+	if (shuffleBtn) {
+		shuffleBtn.onclick = function () {
+			var favs = FavoritesManager.getFavorites();
+			if (favs.length > 0) {
+				var shuffled = favs.slice().sort(function () { return 0.5 - Math.random(); });
+				playlist = shuffled;
+				playTrackAtIndex(0);
+				renderFavoritesScreen();
+				showToast("🔀 Shuffled & playing " + favs.length + " favorite songs");
+			}
+		};
+	}
+
+	var clearBtn = document.getElementById("fav_clear_btn");
+	if (clearBtn) {
+		clearBtn.onclick = function () {
+			if (confirm("Are you sure you want to clear all favorite songs?")) {
+				FavoritesManager.clearAll();
+			}
+		};
+	}
+
+	var playerDockFavBtn = document.getElementById("player_fav_btn");
+	if (playerDockFavBtn) {
+		playerDockFavBtn.onclick = function (e) {
+			e.stopPropagation();
+			var curSong = (playlist && playlist[playlist_index]) || null;
+			if (curSong) {
+				FavoritesManager.toggleFavorite(curSong);
+			} else {
+				showToast("No song is currently playing");
+			}
+		};
+	}
+
+	var lyricsFavBtn = document.getElementById("lyrics_fav_btn");
+	if (lyricsFavBtn) {
+		lyricsFavBtn.onclick = function (e) {
+			e.stopPropagation();
+			var curSong = (playlist && playlist[playlist_index]) || null;
+			if (curSong) {
+				FavoritesManager.toggleFavorite(curSong);
+			}
+		};
+	}
+}
+
 // Home Page Feeds Loading
 async function loadHomeFeeds() {
 	var latestPromise = SaavnAPI.searchSongs("latest telugu songs", 1, 8);
@@ -581,11 +928,15 @@ function renderCardsGrid(containerId, songsList, categoryKey) {
 		}
 
 		var playingOverlay = isActive ? '<div class="playing-pill"><i class="fa fa-signal"></i> Playing</div>' : '';
+		var isFav = (typeof FavoritesManager !== "undefined") && FavoritesManager.isFavorite(song);
+		var favIconClass = isFav ? "fa fa-heart" : "fa fa-heart-o";
+		var favActiveClass = isFav ? " active" : "";
 
 		card.innerHTML =
 			'<div class="card-thumb-wrapper">' +
 			'<img class="card-thumb" src="' + song.cover + '" alt="' + song.title + '" loading="lazy">' +
 			'<span class="hd-badge"><i class="fa fa-bolt"></i> HD</span>' +
+			'<button class="card-fav-btn' + favActiveClass + '" data-fav-song-title="' + song.title.replace(/"/g, '&quot;') + '" data-fav-song-artist="' + (song.artist || '').replace(/"/g, '&quot;') + '" title="' + (isFav ? 'Remove from Favorites' : 'Add to Favorites') + '"><i class="' + favIconClass + '"></i></button>' +
 			playingOverlay +
 			'<div class="play-overlay">' +
 			'<div class="play-btn-circle"><i class="fa fa-play"></i></div>' +
@@ -593,6 +944,16 @@ function renderCardsGrid(containerId, songsList, categoryKey) {
 			'</div>' +
 			'<div class="card-title" title="' + song.title + '">' + song.title + '</div>' +
 			'<div class="card-artist" title="' + song.artist + '">' + song.artist + '</div>';
+
+		var favBtn = card.querySelector(".card-fav-btn");
+		if (favBtn) {
+			favBtn.onclick = function (e) {
+				e.stopPropagation();
+				if (typeof FavoritesManager !== "undefined") {
+					FavoritesManager.toggleFavorite(song);
+				}
+			};
+		}
 
 		card.onclick = function () {
 			playlist = songsList;
@@ -609,6 +970,9 @@ function updateAllActiveCards() {
 	renderAlbumsList("bollywood_songs_list", homeFeeds.motivational, "bollywood");
 	renderAlbumsList("hollywood_songs_list", homeFeeds.deep_focus, "hollywood");
 	renderSongsList(playlist);
+	if (typeof FavoritesManager !== "undefined") {
+		FavoritesManager.updateAllUI();
+	}
 }
 
 function renderSongsList(songsList) {
@@ -679,6 +1043,21 @@ function renderSongsList(songsList) {
 		durSpan.className = "song-duration";
 		durSpan.textContent = songItem.durationStr || "--:--";
 
+		// Favorite heart button on song row
+		var isFav = (typeof FavoritesManager !== "undefined") && FavoritesManager.isFavorite(songItem);
+		var favBtn = document.createElement("button");
+		favBtn.className = "row-fav-btn" + (isFav ? " active" : "");
+		favBtn.setAttribute("data-fav-song-title", songItem.title);
+		favBtn.setAttribute("data-fav-song-artist", songItem.artist || "");
+		favBtn.title = isFav ? "Remove from Favorites" : "Add to Favorites";
+		favBtn.innerHTML = isFav ? '<i class="fa fa-heart"></i>' : '<i class="fa fa-heart-o"></i>';
+		favBtn.onclick = function (e) {
+			e.stopPropagation();
+			if (typeof FavoritesManager !== "undefined") {
+				FavoritesManager.toggleFavorite(songItem);
+			}
+		};
+
 		var playRowBtn = document.createElement("button");
 		playRowBtn.className = "row-play-btn";
 		playRowBtn.innerHTML = isActive && !audio.paused ? '<i class="fa fa-pause"></i>' : '<i class="fa fa-play"></i>';
@@ -688,6 +1067,7 @@ function renderSongsList(songsList) {
 		li.appendChild(infoDiv);
 		li.appendChild(eqIcon);
 		li.appendChild(durSpan);
+		li.appendChild(favBtn);
 		li.appendChild(playRowBtn);
 
 		li.onclick = function () {
@@ -709,6 +1089,9 @@ function updatePlayerMetadata(song) {
 	var statusElem = document.getElementById("playlist_status");
 	if (statusElem) {
 		statusElem.innerHTML = song.title + ' <span class="artist-sub">• ' + song.artist + '</span>';
+	}
+	if (typeof FavoritesManager !== "undefined") {
+		FavoritesManager.updateAllUI();
 	}
 }
 
@@ -1233,6 +1616,7 @@ function switchTab(tabName, skipHashUpdate) {
 	var lyricsView = document.getElementById("lyrics_view");
 	var chatView = document.getElementById("chat_view");
 	var albumView = document.getElementById("album_view");
+	var favoritesView = document.getElementById("favorites_view");
 	var header = document.getElementById("header");
 
 	if (homeView) homeView.classList.remove("active");
@@ -1240,20 +1624,17 @@ function switchTab(tabName, skipHashUpdate) {
 	if (lyricsView) lyricsView.classList.remove("active");
 	if (chatView) chatView.classList.remove("active");
 	if (albumView) albumView.classList.remove("active");
+	if (favoritesView) favoritesView.classList.remove("active");
 	if (header) header.classList.remove("hide-mobile");
 	var floatingChatBtn = document.getElementById("floating_chat_btn");
-	if (floatingChatBtn) {
-		floatingChatBtn.classList.toggle("active", tabName === "ai_chat");
-		var chatIcon = floatingChatBtn.querySelector("i");
-		if (chatIcon) {
-			chatIcon.className = tabName === "ai_chat" ? "fa-solid fa-xmark" : "fa-solid fa-music";
-		}
-		floatingChatBtn.setAttribute("title", tabName === "ai_chat" ? "Close AI Chat (Home)" : "Chat with Sangeetham AI");
-	}
 
 	if (tabName === "home") {
 		if (homeView) homeView.classList.add("active");
 		if (!skipHashUpdate) updateUrlHash("home");
+	} else if (tabName === "favorites") {
+		if (favoritesView) favoritesView.classList.add("active");
+		renderFavoritesScreen();
+		if (!skipHashUpdate) updateUrlHash("favorites");
 	} else if (tabName === "lyrics") {
 		if (lyricsView) lyricsView.classList.add("active");
 		loadLyricsForCurrentSong();
@@ -2002,6 +2383,9 @@ function initAudioPlayer() {
 	// Initialize Voice Search
 	initVoiceSearch(triggerSearch);
 
+	// Initialize Favorites Listeners
+	initFavoritesEvents();
+
 	// Initialize URL Hash Deep-Linking
 	setTimeout(handleUrlHashNavigation, 300);
 }
@@ -2110,6 +2494,10 @@ async function openAlbumDetails(albumId, autoPlay) {
 			var isActive = (playlist === album.songs && playlist_index === idx);
 			if (isActive) trackRow.classList.add("active");
 
+			var isFav = (typeof FavoritesManager !== "undefined") && FavoritesManager.isFavorite(song);
+			var favIconClass = isFav ? "fa fa-heart" : "fa fa-heart-o";
+			var favActiveClass = isFav ? " active" : "";
+
 			trackRow.innerHTML =
 				'<div class="track-left-group">' +
 				'<div class="track-index">' + (idx + 1) + '</div>' +
@@ -2121,8 +2509,19 @@ async function openAlbumDetails(albumId, autoPlay) {
 				'</div>' +
 				'<div class="track-right-group">' +
 				'<span class="track-duration">' + (song.durationStr || '3:30') + '</span>' +
+				'<button class="row-fav-btn' + favActiveClass + '" data-fav-song-title="' + song.title.replace(/"/g, '&quot;') + '" data-fav-song-artist="' + (song.artist || '').replace(/"/g, '&quot;') + '" title="' + (isFav ? 'Remove from Favorites' : 'Add to Favorites') + '"><i class="' + favIconClass + '"></i></button>' +
 				'<button class="track-play-btn" title="Play Track"><i class="fa fa-play"></i></button>' +
 				'</div>';
+
+			var favBtn = trackRow.querySelector(".row-fav-btn");
+			if (favBtn) {
+				favBtn.onclick = function (e) {
+					e.stopPropagation();
+					if (typeof FavoritesManager !== "undefined") {
+						FavoritesManager.toggleFavorite(song);
+					}
+				};
+			}
 
 			trackRow.onclick = function () {
 				playlist = album.songs;
@@ -2274,7 +2673,7 @@ async function handleUrlHashNavigation() {
 			var triggerFn = window.triggerSearchGlobal;
 			if (typeof triggerFn === "function") triggerFn(params.q);
 		}
-	} else if (["home", "ai_chat", "motivational", "deep_focus", "latest"].indexOf(route) !== -1) {
+	} else if (["home", "favorites", "ai_chat", "motivational", "deep_focus", "latest"].indexOf(route) !== -1) {
 		switchTab(route, true);
 	}
 }
