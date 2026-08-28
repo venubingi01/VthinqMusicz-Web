@@ -4411,6 +4411,13 @@ input[type='range']::-webkit-slider-thumb:hover {
 		padding: 14px 16px;
 	}
 
+	.lyric-line:hover {
+		color: rgba(255, 255, 255, 0.9);
+		background: transparent;
+		filter: blur(0.6px);
+		transform: none;
+	}
+
 	/* Player Dock Bar Mobile Layout */
 	#container {
 		height: 130px;
