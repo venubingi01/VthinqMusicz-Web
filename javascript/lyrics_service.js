@@ -175,8 +175,10 @@
 			var self = this;
 
 			// Analyze text/word length for each line:
-			// If line duration has so much difference compared to reasonable vocal singing time,
-			// adjust end_time so the remaining time displays the music symbol
+			// If line contains three dots ('...' or '…'), it indicates a sustained/extended vocal note:
+			// - Do NOT add music symbol if duration is <= 5 seconds (5000ms).
+			// - If it takes more than 5 seconds, allocate 5s for the sustained vocal and show music symbol for the remainder.
+			// If no three dots, analyze expected vocal duration and split if difference >= 4000ms.
 			list.forEach(function (item) {
 				if (item.isMusic) return;
 				// Normalize end_time in case API returned seconds (< 1000 while start_time is in ms)
@@ -184,10 +186,21 @@
 					item.end_time = item.end_time * 1000;
 				}
 				var dur = (item.end_time || 0) - (item.start_time || 0);
-				var estVocal = self.estimateVocalDuration(item.text);
-				if (dur - estVocal >= 2000) {
-					item.originalEnd = item.end_time;
-					item.end_time = item.start_time + estVocal;
+				var hasDots = /\.{3,}|…/.test(item.text);
+
+				if (hasDots) {
+					if (dur > 5000) {
+						item.originalEnd = item.end_time;
+						item.end_time = item.start_time + 5000;
+						item.hasSplit = true;
+					}
+				} else {
+					var estVocal = self.estimateVocalDuration(item.text);
+					if (dur - estVocal >= 4000) {
+						item.originalEnd = item.end_time;
+						item.end_time = item.start_time + estVocal;
+						item.hasSplit = true;
+					}
 				}
 			});
 
@@ -211,8 +224,9 @@
 					var currentEnd = list[i].end_time;
 					var nextStart = list[i + 1].start_time;
 
-					// If gap between current end_time and next start_time is more than 2 seconds (2000ms)
-					if (typeof currentEnd === "number" && typeof nextStart === "number" && (nextStart - currentEnd) >= 2000) {
+					// If gap between current end_time and next start_time is substantial (or line was split)
+					var gapThreshold = list[i].hasSplit ? 1000 : 4000;
+					if (typeof currentEnd === "number" && typeof nextStart === "number" && (nextStart - currentEnd) >= gapThreshold) {
 						result.push({
 							id: "music_break_" + i,
 							start_time: currentEnd,
@@ -221,8 +235,8 @@
 							isMusic: true
 						});
 					}
-				} else if (list[i].originalEnd && (list[i].originalEnd - list[i].end_time) >= 2000) {
-					// Outro music break for the final line if it had a large leftover duration
+				} else if (list[i].originalEnd && (list[i].originalEnd - list[i].end_time) >= 1000) {
+					// Outro music break for the final line if it had a leftover duration
 					result.push({
 						id: "music_outro",
 						start_time: list[i].end_time,
