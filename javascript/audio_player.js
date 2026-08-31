@@ -990,11 +990,97 @@ function initFavoritesEvents() {
 	}
 }
 
+// Fetch Top Charts based on topCharts array
+async function fetchTopChartsPlaylists() {
+	if (!topCharts || !Array.isArray(topCharts) || topCharts.length === 0) {
+		return await SaavnAPI.searchPlaylists("Top charts", 1, 8);
+	}
+	var promises = topCharts.map(async function (chartQuery) {
+		try {
+			var res = await SaavnAPI.searchPlaylists(chartQuery, 1, 5);
+			var queryClean = chartQuery.replace(/[^a-zA-Z0-9 ]/g, "").toLowerCase();
+			var queryWords = queryClean.split(/\s+/).filter(function (w) { return w.length > 2; });
+
+			// Check if any result title matches one of the query words
+			var best = res && res.find(function (item) {
+				var itemTitle = (item.title || "").toLowerCase();
+				return queryWords.some(function (w) { return itemTitle.indexOf(w) !== -1; });
+			});
+
+			if (!best) {
+				// Try significant word search (e.g. "Chithra" for "K. S. Chithra")
+				var significant = chartQuery.replace(/[.\-_]/g, " ").split(/\s+/).filter(function (w) { return w.length > 2; }).join(" ");
+				if (significant && significant.toLowerCase() !== chartQuery.toLowerCase()) {
+					var res2 = await SaavnAPI.searchPlaylists(significant, 1, 3);
+					best = res2 && (res2.find(function (item) {
+						var itemTitle = (item.title || "").toLowerCase();
+						return queryWords.some(function (w) { return itemTitle.indexOf(w) !== -1; });
+					}) || res2[0]);
+				}
+			}
+
+			var finalPick = best || (res && res[0]) || null;
+			return finalPick;
+		} catch (e) {
+			console.warn("Failed to fetch top chart playlist for query:", chartQuery, e);
+		}
+		return null;
+	});
+
+	var list = (await Promise.all(promises)).filter(Boolean);
+	if (list.length === 0) {
+		list = await SaavnAPI.searchPlaylists("Top charts", 1, 8);
+	}
+	return list;
+}
+
+function renderTopChartsChips() {
+	var chipsContainer = document.getElementById("top_charts_chips");
+	if (!chipsContainer || !topCharts || topCharts.length === 0) return;
+	chipsContainer.innerHTML = "";
+
+	var allChip = document.createElement("span");
+	allChip.className = "chip active";
+	allChip.innerHTML = '<i class="fa-solid fa-fire"></i> All Charts';
+	allChip.onclick = function () {
+		chipsContainer.querySelectorAll(".chip").forEach(function (c) { c.classList.remove("active"); });
+		allChip.classList.add("active");
+		renderPlaylistsList("top_charts_list", homeFeeds.top_charts, "top_charts");
+	};
+	chipsContainer.appendChild(allChip);
+
+	topCharts.forEach(function (chartQuery) {
+		var chip = document.createElement("span");
+		chip.className = "chip";
+		chip.innerHTML = '<i class="fa-solid fa-chart-line"></i> ' + chartQuery;
+		chip.onclick = function () {
+			chipsContainer.querySelectorAll(".chip").forEach(function (c) { c.classList.remove("active"); });
+			chip.classList.add("active");
+			var qClean = chartQuery.replace(/[^a-zA-Z0-9 ]/g, "").toLowerCase();
+			var qWords = qClean.split(/\s+/).filter(function (w) { return w.length > 2; });
+			var matched = homeFeeds.top_charts.filter(function (p) {
+				var pTitle = (p.title || "").toLowerCase();
+				return qWords.some(function (w) { return pTitle.indexOf(w) !== -1; });
+			});
+			if (matched.length > 0) {
+				renderPlaylistsList("top_charts_list", matched, "top_charts");
+			} else {
+				SaavnAPI.searchPlaylists(chartQuery, 1, 4).then(function (res) {
+					if (res && res.length > 0) {
+						renderPlaylistsList("top_charts_list", res, "top_charts");
+					}
+				});
+			}
+		};
+		chipsContainer.appendChild(chip);
+	});
+}
+
 // Home Page Feeds Loading
 async function loadHomeFeeds() {
 	var latestPromise = SaavnAPI.searchSongs("latest telugu songs", 1, 8);
 	var motivationalPromise = SaavnAPI.searchAlbums("latest bollywood", 1, 8);
-	var topChartsPromise = SaavnAPI.searchPlaylists("Top charts", 1, 8);
+	var topChartsPromise = fetchTopChartsPlaylists();
 
 	var results = await Promise.all([latestPromise, motivationalPromise, topChartsPromise]);
 
@@ -1006,8 +1092,8 @@ async function loadHomeFeeds() {
 	// Populate Home Page Grids
 	renderCardsGrid("latest_songs_list", homeFeeds.latest, "latest");
 	renderAlbumsList("bollywood_songs_list", homeFeeds.motivational, "motivational");
-	renderPlaylistsList("Now Trending", homeFeeds.top_charts, "top_charts");
-	// renderPlaylistsList("hollywood_songs_list", homeFeeds.top_charts, "top_charts");
+	renderPlaylistsList("top_charts_list", homeFeeds.top_charts, "top_charts");
+	renderTopChartsChips();
 
 	// Initialize default playlist with latest songs feed
 	if (playlist.length === 0) {
