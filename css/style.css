@@ -1679,7 +1679,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 	letter-spacing: 12px;
 	color: #ffffff;
 	text-shadow: 0 0 20px rgba(255, 45, 73, 0.8), 0 0 35px rgba(255, 118, 0, 0.4);
-	animation: musicPulse 2s infinite ease-in-out;
+	animation: musicPulse 0.42s infinite ease-in-out;
 }
 
 @keyframes musicPulse {
@@ -3327,6 +3327,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 .album-hero {
 	display: flex;
 	align-items: center;
+	align-self: baseline;
 	gap: 28px;
 	background: var(--bg-glass-card);
 	backdrop-filter: blur(30px);
@@ -3373,7 +3374,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-	min-width: 0;
+	width: 240px;
 	/* align-items: center; */
 }
 
@@ -4567,6 +4568,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 		text-align: center;
 		padding: 20px 15px;
 		gap: 16px;
+		margin: auto;
 	}
 
 	.album-hero-meta {

@@ -126,15 +126,15 @@
             </div>
          </div>
 
-         <!-- Hollywood Albums Section -->
-         <div class="section-container" id="hollywood_section">
+         <!-- Top Charts Section -->
+         <div class="section-container" id="top_charts_section">
             <div class="content-heading">
-               <h2><i class="fa-solid fa-compact-disc section-icon"></i> Hollywood Albums</h2>
-               <button class="view-all-btn" data-tab="hollywood">View All <i class="fa fa-angle-right"></i></button>
+               <h2><i class="fa-solid fa-chart-line section-icon"></i> Top Charts</h2>
+               <button class="view-all-btn" data-tab="top_charts">View All <i class="fa fa-angle-right"></i></button>
             </div>
-            <div id="hollywood_songs_list" class="cards-grid">
-               <div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Fetching Hollywood
-                  albums...</div>
+            <div class="search-chips top-charts-chips" id="top_charts_chips" style="margin-bottom: 15px;"></div>
+            <div id="top_charts_list" class="cards-grid">
+               <div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Fetching Top Charts...</div>
             </div>
          </div>
       </div>
@@ -157,6 +157,7 @@
                      class="fa fa-times-circle"></i></button>
             </div>
             <div class="search-chips">
+               <span class="chip" data-query="Top charts"><i class="fa-solid fa-chart-line"></i> Top Charts</span>
                <span class="chip" data-query="Arijit Singh"><i class="fa fa-music"></i> Arijit Singh</span>
                <span class="chip" data-query="Trending Hindi"><i class="fa fa-fire"></i> Trending Hindi</span>
                <span class="chip" data-query="Lofi Study"><i class="fa fa-headphones"></i> Lo-Fi Study</span>
@@ -164,12 +165,14 @@
                <span class="chip" data-query="Anirudh"><i class="fa fa-bolt"></i> Anirudh</span>
                <span class="chip" data-query="Sid Sriram"><i class="fa fa-heart"></i> Sid Sriram</span>
             </div>
-            <!-- Search Filter Type (Songs vs Albums) -->
+            <!-- Search Filter Type (Songs vs Albums vs Playlists) -->
             <div class="search-filter-pills" id="search_filter_pills">
                <button class="search-filter-pill active" data-search-type="songs"><i class="fa-solid fa-music"></i>
                   Songs</button>
                <button class="search-filter-pill" data-search-type="albums"><i class="fa-solid fa-compact-disc"></i>
                   Albums</button>
+               <button class="search-filter-pill" data-search-type="playlists"><i class="fa-solid fa-chart-line"></i>
+                  Playlists & Charts</button>
             </div>
          </div>
          <div id="songslistcon">
@@ -269,7 +272,7 @@
                   <p>
 
                      <i class="fa-brands fa-deezer"></i>
-                     Online • Intelligent Music Recommendation & DJ
+                     Online • Intelligent Music Recommendation & DJ. (AI can make mistakes.)
                   </p>
                </div>
             </div>
@@ -360,9 +363,9 @@
             <footer class="app-footer">
                <div class="footer-container">
                   <div class="dev-credits">
-                     <span class="dev-tag"><i class="fa fa-code"></i> Made with ❤️ by <a style="text-decoration: none;"
-                           href="https://www.linkedin.com/in/venu-bingi-bbb9689a" target="_blank"
-                           rel="noopener"><strong>Venu
+                     <span class="dev-tag"><i class="fa fa-code"></i> Crafted with ❤️ by <a
+                           style="text-decoration: none;" href="https://www.linkedin.com/in/venu-bingi-bbb9689a"
+                           target="_blank" rel="noopener"><strong>Venu
                               Bingi</strong></a></span>
                   </div>
                </div>
@@ -482,7 +485,7 @@
                      alt="Developer Avatar">
                </div>
                <div class="dev-info-text">
-                  <h4>Made with ❤️ by <strong>Venu Bingi</strong> <i class="fa fa-external-link dev-link-icon"></i>
+                  <h4>Crafted with ❤️ by <strong>Venu Bingi</strong> <i class="fa fa-external-link dev-link-icon"></i>
                   </h4>
                   <p>Building open-source audio experiences and AI developer tools for the web and mobile.</p>
                </div>

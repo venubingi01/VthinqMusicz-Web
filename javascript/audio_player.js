@@ -2,6 +2,13 @@
 // Developer name : Venu Bingi
 // This AI Music Player use JioSaavn Open Source API for music streaming.
 
+var topCharts = [
+	"Hindi: India Superhits Top 50",
+	"Trending today",
+	"Random picks",
+	"Tamil: India Superhits Top 50",
+	"K. S. Chithra"
+];
 
 // HTML entity decoder helper
 function decodeHTMLEntities(text) {
@@ -346,6 +353,104 @@ var SaavnAPI = {
 			}
 		}
 		return null;
+	},
+
+	normalizePlaylist: function (raw) {
+		if (!raw) return null;
+		var id = raw.id || raw.listid || "";
+		var title = decodeHTMLEntities(raw.name || raw.title || raw.listname || "Top Chart");
+		var songCount = raw.songCount || raw.count || raw.song_count || raw.list_count || (raw.songs ? raw.songs.length : 0) || "";
+		var language = raw.language || "";
+		var artists = raw.artists ? (Array.isArray(raw.artists) ? raw.artists.map(function (a) { return a.name; }).join(", ") : (raw.artists.primary ? raw.artists.primary.map(function (a) { return a.name; }).join(", ") : "")) : "";
+		var description = decodeHTMLEntities(raw.description || (raw.subtitle_desc ? raw.subtitle_desc.join(" • ") : "") || "");
+		if (!artists && language) {
+			artists = language.charAt(0).toUpperCase() + language.slice(1) + (songCount ? " • " + songCount + " Songs" : " • Top Charts");
+		} else if (!artists) {
+			artists = songCount ? songCount + " Songs • Top Charts" : "Top Charts Playlist";
+		}
+
+		var coverUrl = "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80";
+		if (raw.image) {
+			if (typeof raw.image === "string") {
+				coverUrl = raw.image.replace("150x150", "500x500").replace("50x50", "500x500");
+			} else if (Array.isArray(raw.image) && raw.image.length > 0) {
+				var highRes = raw.image.find(function (img) { return img.quality === "500x500"; }) || raw.image[raw.image.length - 1];
+				coverUrl = highRes.link || highRes.url || coverUrl;
+			}
+		}
+
+		return {
+			id: id,
+			title: title,
+			artists: artists,
+			description: description,
+			songCount: songCount,
+			language: language,
+			cover: coverUrl,
+			type: "playlist",
+			raw: raw
+		};
+	},
+
+	searchPlaylists: async function (query, page, limit) {
+		page = page || 1;
+		limit = limit || 15;
+		var self = this;
+		var endpoints = [
+			self.primaryApiUrl + "/search/playlists?query=" + encodeURIComponent(query) + "&page=" + page + "&limit=" + limit,
+			self.secondaryFallbackApiUrl + "/search/playlists?query=" + encodeURIComponent(query) + "&page=" + page + "&limit=" + limit,
+			self.fallbackApiUrl + "/search/playlists?query=" + encodeURIComponent(query) + "&page=" + page + "&limit=" + limit,
+			"https://www.jiosaavn.com/api.php?__call=search.getPlaylistResults&_format=json&_marker=0&p=" + page + "&n=" + limit + "&q=" + encodeURIComponent(query)
+		];
+
+		for (var i = 0; i < endpoints.length; i++) {
+			try {
+				var res = await fetch(endpoints[i]);
+				if (res.ok) {
+					var data = await res.json();
+					var list = (data.data && data.data.results) || data.results || data.data || [];
+					if (Array.isArray(list) && list.length > 0) {
+						return list.map(function (item) { return self.normalizePlaylist(item); }).filter(Boolean);
+					}
+				}
+			} catch (err) {
+				console.warn("searchPlaylists endpoint error:", endpoints[i], err);
+			}
+		}
+		return [];
+	},
+
+	getPlaylistDetails: async function (playlistId, limit) {
+		if (!playlistId) return null;
+		limit = limit || 50;
+		var self = this;
+		var endpoints = [
+			self.primaryApiUrl + "/playlists?id=" + encodeURIComponent(playlistId) + "&limit=" + limit,
+			self.secondaryFallbackApiUrl + "/playlists?id=" + encodeURIComponent(playlistId) + "&limit=" + limit,
+			self.fallbackApiUrl + "/playlists?id=" + encodeURIComponent(playlistId) + "&limit=" + limit,
+			"https://www.jiosaavn.com/api.php?__call=playlist.getDetails&_format=json&listid=" + encodeURIComponent(playlistId)
+		];
+
+		for (var i = 0; i < endpoints.length; i++) {
+			try {
+				var res = await fetch(endpoints[i]);
+				if (res.ok) {
+					var data = await res.json();
+					var playlistData = data.data || data;
+					if (playlistData && (playlistData.name || playlistData.title || playlistData.listname)) {
+						var rawSongs = playlistData.songs || playlistData.list || [];
+						if (Array.isArray(rawSongs) && rawSongs.length > 0) {
+							var normalized = self.normalizePlaylist(playlistData);
+							normalized.songs = rawSongs.map(function (s) { return self.normalizeSong(s); }).filter(Boolean);
+							return normalized;
+						}
+					}
+				}
+			} catch (err) {
+				console.warn("getPlaylistDetails endpoint error:", endpoints[i], err);
+			}
+		}
+		return null;
 	}
 };
 
@@ -473,9 +578,11 @@ var enableVisualizer = false;
 var isShuffle = false;
 var isLoop = false;
 var activeTab = "home";
+var previousTabBeforeDetails = "home";
 var homeFeeds = {
 	latest: [],
 	motivational: [],
+	top_charts: [],
 	deep_focus: []
 };
 var gradient;
@@ -886,19 +993,21 @@ function initFavoritesEvents() {
 // Home Page Feeds Loading
 async function loadHomeFeeds() {
 	var latestPromise = SaavnAPI.searchSongs("latest telugu songs", 1, 8);
-	var motivationalPromise = SaavnAPI.searchAlbums("bollywood", 1, 8);
-	var deepFocusPromise = SaavnAPI.searchAlbums("hollywood", 1, 8);
+	var motivationalPromise = SaavnAPI.searchAlbums("latest bollywood", 1, 8);
+	var topChartsPromise = SaavnAPI.searchPlaylists("Top charts", 1, 8);
 
-	var results = await Promise.all([latestPromise, motivationalPromise, deepFocusPromise]);
+	var results = await Promise.all([latestPromise, motivationalPromise, topChartsPromise]);
 
 	homeFeeds.latest = results[0] && results[0].length > 0 ? results[0] : fallbackPlaylist;
 	homeFeeds.motivational = results[1] && results[1].length > 0 ? results[1] : fallbackPlaylist;
-	homeFeeds.deep_focus = results[2] && results[2].length > 0 ? results[2] : fallbackPlaylist;
+	homeFeeds.top_charts = results[2] && results[2].length > 0 ? results[2] : [];
+	homeFeeds.deep_focus = homeFeeds.top_charts;
 
 	// Populate Home Page Grids
 	renderCardsGrid("latest_songs_list", homeFeeds.latest, "latest");
 	renderAlbumsList("bollywood_songs_list", homeFeeds.motivational, "motivational");
-	renderAlbumsList("hollywood_songs_list", homeFeeds.deep_focus, "deep_focus");
+	renderPlaylistsList("Now Trending", homeFeeds.top_charts, "top_charts");
+	// renderPlaylistsList("hollywood_songs_list", homeFeeds.top_charts, "top_charts");
 
 	// Initialize default playlist with latest songs feed
 	if (playlist.length === 0) {
@@ -968,7 +1077,8 @@ function renderCardsGrid(containerId, songsList, categoryKey) {
 function updateAllActiveCards() {
 	renderCardsGrid("latest_songs_list", homeFeeds.latest, "latest");
 	renderAlbumsList("bollywood_songs_list", homeFeeds.motivational, "bollywood");
-	renderAlbumsList("hollywood_songs_list", homeFeeds.deep_focus, "hollywood");
+	renderPlaylistsList("top_charts_list", homeFeeds.top_charts, "top_charts");
+	renderPlaylistsList("hollywood_songs_list", homeFeeds.top_charts, "hollywood");
 	renderSongsList(playlist);
 	if (typeof FavoritesManager !== "undefined") {
 		FavoritesManager.updateAllUI();
@@ -1704,17 +1814,20 @@ function switchTab(tabName, skipHashUpdate) {
 				});
 			}
 			if (!skipHashUpdate) updateUrlHash("bollywood");
-		} else if (tabName === "hollywood" || tabName === "deep_focus") {
-			if (viewTitle) viewTitle.innerHTML = '<i class="fa-solid fa-compact-disc section-icon"></i> Hollywood Albums';
-			if (homeFeeds.deep_focus && homeFeeds.deep_focus.length > 0) {
-				renderAlbumsList(homeFeeds.deep_focus);
+		} else if (tabName === "top_charts" || tabName === "charts" || tabName === "hollywood" || tabName === "deep_focus") {
+			if (searchView) searchView.classList.add("active");
+			var viewTitle = document.getElementById("view_title");
+			if (viewTitle) viewTitle.innerHTML = '<i class="fa-solid fa-chart-line section-icon"></i> Top Charts';
+			if (homeFeeds.top_charts && homeFeeds.top_charts.length > 0) {
+				renderPlaylistsList(homeFeeds.top_charts);
 			} else {
-				SaavnAPI.searchAlbums("hollywood", 1, 20).then(function (res) {
+				SaavnAPI.searchPlaylists("Top charts", 1, 20).then(function (res) {
+					homeFeeds.top_charts = res;
 					homeFeeds.deep_focus = res;
-					renderAlbumsList(res);
+					renderPlaylistsList(res);
 				});
 			}
-			if (!skipHashUpdate) updateUrlHash("hollywood");
+			if (!skipHashUpdate) updateUrlHash("top_charts");
 		} else if (tabName === "search") {
 			if (viewTitle) viewTitle.textContent = "Search Music";
 			if (songSearch) songSearch.focus();
@@ -1941,6 +2054,13 @@ function initAudioPlayer() {
 				} else if (songsContainer) {
 					songsContainer.innerHTML = '<div class="no-songs"><i class="fa-solid fa-compact-disc"></i> No albums found matching "' + q + '". Try another keyword.</div>';
 				}
+			} else if (currentSearchType === "playlists") {
+				var playlistResults = await SaavnAPI.searchPlaylists(q, 1, 20);
+				if (playlistResults.length > 0) {
+					renderPlaylistsList(playlistResults);
+				} else if (songsContainer) {
+					songsContainer.innerHTML = '<div class="no-songs"><i class="fa-solid fa-chart-line"></i> No playlists or top charts found matching "' + q + '". Try another keyword.</div>';
+				}
 			} else {
 				var searchResults = await SaavnAPI.searchSongs(q, 1, 20);
 				if (searchResults.length > 0) {
@@ -1981,11 +2101,15 @@ function initAudioPlayer() {
 		}
 	});
 
-	// Album Back Button Listener
+	// Album & Playlist Back Button Listener
 	var albumBackBtn = document.getElementById("album_back_btn");
 	if (albumBackBtn) {
 		albumBackBtn.addEventListener("click", function () {
-			switchTab("search");
+			if (previousTabBeforeDetails && previousTabBeforeDetails !== "album") {
+				switchTab(previousTabBeforeDetails);
+			} else {
+				switchTab("home");
+			}
 		});
 	}
 
@@ -2412,6 +2536,62 @@ function initAudioPlayer() {
 	setTimeout(handleUrlHashNavigation, 300);
 }
 
+function renderPlaylistsList(containerOrList, maybePlaylistsList, categoryKey) {
+	var targetContainer = null;
+	var playlistsList = null;
+
+	if (typeof containerOrList === "string") {
+		targetContainer = document.getElementById(containerOrList);
+		playlistsList = maybePlaylistsList;
+	} else if (containerOrList && containerOrList.nodeType) {
+		targetContainer = containerOrList;
+		playlistsList = maybePlaylistsList;
+	} else {
+		targetContainer = document.getElementById("songslistcon");
+		playlistsList = containerOrList;
+	}
+
+	if (!targetContainer) return;
+	targetContainer.innerHTML = "";
+
+	if (!playlistsList || playlistsList.length === 0) {
+		targetContainer.innerHTML = '<div class="no-songs"><i class="fa-solid fa-chart-line"></i> No top charts found.</div>';
+		return;
+	}
+
+	var isDirectGrid = targetContainer.classList.contains("cards-grid");
+	var parentContainer = targetContainer;
+
+	if (!isDirectGrid) {
+		var grid = document.createElement("div");
+		grid.className = "cards-grid";
+		targetContainer.appendChild(grid);
+		parentContainer = grid;
+	}
+
+	playlistsList.forEach(function (playlistItem) {
+		var card = document.createElement("div");
+		card.className = "song-card album-card playlist-card";
+
+		card.innerHTML =
+			'<div class="card-thumb-wrapper">' +
+			'<img class="card-thumb" src="' + playlistItem.cover + '" alt="' + playlistItem.title + '" loading="lazy">' +
+			'<span class="hd-badge album-badge"><i class="fa-solid fa-chart-line"></i> ' + (playlistItem.songCount ? playlistItem.songCount + ' Songs' : 'Top Chart') + '</span>' +
+			'<div class="play-overlay">' +
+			'<div class="play-btn-circle"><i class="fa fa-play"></i></div>' +
+			'</div>' +
+			'</div>' +
+			'<div class="card-title" title="' + playlistItem.title + '">' + playlistItem.title + '</div>' +
+			'<div class="card-artist" title="' + (playlistItem.artists || '') + '">' + (playlistItem.artists || '') + '</div>';
+
+		card.onclick = function () {
+			openPlaylistDetails(playlistItem.id);
+		};
+
+		parentContainer.appendChild(card);
+	});
+}
+
 function renderAlbumsList(containerOrList, maybeAlbumsList, categoryKey) {
 	var targetContainer = null;
 	var albumsList = null;
@@ -2448,20 +2628,27 @@ function renderAlbumsList(containerOrList, maybeAlbumsList, categoryKey) {
 	albumsList.forEach(function (album) {
 		var card = document.createElement("div");
 		card.className = "song-card album-card";
+		var isPlaylist = (album.type === "playlist");
+		var badgeIcon = isPlaylist ? "fa-solid fa-chart-line" : "fa-solid fa-compact-disc";
+		var badgeText = album.songCount ? album.songCount + ' Songs' : (isPlaylist ? 'Top Chart' : 'Album');
 
 		card.innerHTML =
 			'<div class="card-thumb-wrapper">' +
 			'<img class="card-thumb" src="' + album.cover + '" alt="' + album.title + '" loading="lazy">' +
-			'<span class="hd-badge album-badge"><i class="fa-solid fa-compact-disc"></i> ' + (album.songCount ? album.songCount + ' Songs' : 'Album') + '</span>' +
+			'<span class="hd-badge album-badge"><i class="' + badgeIcon + '"></i> ' + badgeText + '</span>' +
 			'<div class="play-overlay">' +
 			'<div class="play-btn-circle"><i class="fa fa-play"></i></div>' +
 			'</div>' +
 			'</div>' +
 			'<div class="card-title" title="' + album.title + '">' + album.title + '</div>' +
-			'<div class="card-artist" title="' + album.artists + '">' + album.artists + (album.year ? ' • ' + album.year : '') + '</div>';
+			'<div class="card-artist" title="' + (album.artists || '') + '">' + (album.artists || '') + (album.year ? ' • ' + album.year : '') + '</div>';
 
 		card.onclick = function () {
-			openAlbumDetails(album.id);
+			if (isPlaylist) {
+				openPlaylistDetails(album.id);
+			} else {
+				openAlbumDetails(album.id);
+			}
 		};
 
 		parentContainer.appendChild(card);
@@ -2470,6 +2657,9 @@ function renderAlbumsList(containerOrList, maybeAlbumsList, categoryKey) {
 
 async function openAlbumDetails(albumId, autoPlay) {
 	if (!albumId) return;
+	if (activeTab && activeTab !== "album") {
+		previousTabBeforeDetails = activeTab;
+	}
 	switchTab("album", true);
 	updateUrlHash("album", { id: albumId });
 
@@ -2481,6 +2671,11 @@ async function openAlbumDetails(albumId, autoPlay) {
 	var albumLangEl = document.getElementById("album_hero_lang");
 	var albumSongsListEl = document.getElementById("album_songs_list");
 	var albumGlowEl = document.getElementById("album_cover_glow");
+	var albumBadgeEl = document.querySelector("#album_view .album-type-badge");
+	var tracklistHeadingEl = document.querySelector("#album_view .tracklist-heading h3");
+
+	if (albumBadgeEl) albumBadgeEl.innerHTML = '<i class="fa-solid fa-compact-disc"></i> ALBUM';
+	if (tracklistHeadingEl) tracklistHeadingEl.innerHTML = '<i class="fa-solid fa-list-ol"></i> Album Tracklist';
 
 	if (albumSongsListEl) {
 		albumSongsListEl.innerHTML = '<div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Loading album tracks...</div>';
@@ -2489,7 +2684,7 @@ async function openAlbumDetails(albumId, autoPlay) {
 	var album = await SaavnAPI.getAlbumDetails(albumId);
 	if (!album) {
 		if (albumSongsListEl) {
-			albumSongsListEl.innerHTML = '<div class="no-songs"><i class="fa fa-exclamation-triangle"></i> Could not load album details. Please try again.</div>';
+			albumSongsListEl.innerHTML = '<div class="no-songs"><i class="fa-exclamation-triangle"></i> Could not load album details. Please try again.</div>';
 		}
 		return;
 	}
@@ -2605,6 +2800,146 @@ async function openAlbumDetails(albumId, autoPlay) {
 	}
 }
 
+async function openPlaylistDetails(playlistId, autoPlay) {
+	if (!playlistId) return;
+	if (activeTab && activeTab !== "album") {
+		previousTabBeforeDetails = activeTab;
+	}
+	switchTab("album", true);
+	updateUrlHash("playlist", { id: playlistId });
+
+	var albumTitleEl = document.getElementById("album_hero_title");
+	var albumArtistsEl = document.getElementById("album_hero_artists");
+	var albumCoverEl = document.getElementById("album_hero_cover");
+	var albumYearEl = document.getElementById("album_hero_year");
+	var albumCountEl = document.getElementById("album_hero_count");
+	var albumLangEl = document.getElementById("album_hero_lang");
+	var albumSongsListEl = document.getElementById("album_songs_list");
+	var albumGlowEl = document.getElementById("album_cover_glow");
+	var albumBadgeEl = document.querySelector("#album_view .album-type-badge");
+	var tracklistHeadingEl = document.querySelector("#album_view .tracklist-heading h3");
+
+	if (albumBadgeEl) albumBadgeEl.innerHTML = '<i class="fa-solid fa-chart-line"></i> TOP CHART';
+	if (tracklistHeadingEl) tracklistHeadingEl.innerHTML = '<i class="fa-solid fa-list-ol"></i> Playlist Tracklist';
+
+	if (albumSongsListEl) {
+		albumSongsListEl.innerHTML = '<div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Loading top chart tracks...</div>';
+	}
+
+	var playlistObj = await SaavnAPI.getPlaylistDetails(playlistId);
+	if (!playlistObj || !playlistObj.songs || playlistObj.songs.length === 0) {
+		if (albumSongsListEl) {
+			albumSongsListEl.innerHTML = '<div class="no-songs"><i class="fa fa-exclamation-triangle"></i> Could not load top chart tracks. Please try again.</div>';
+		}
+		return;
+	}
+
+	if (albumTitleEl) albumTitleEl.textContent = playlistObj.title;
+	if (albumArtistsEl) albumArtistsEl.textContent = playlistObj.description || playlistObj.artists || "Top Charts Playlist";
+	if (albumCoverEl) albumCoverEl.src = playlistObj.cover;
+	if (albumGlowEl) albumGlowEl.style.backgroundImage = "url('" + playlistObj.cover + "')";
+	if (albumYearEl) albumYearEl.textContent = "CHARTS";
+	if (albumCountEl) albumCountEl.textContent = (playlistObj.songs ? playlistObj.songs.length : 0) + " Songs";
+	if (albumLangEl) albumLangEl.textContent = playlistObj.language ? playlistObj.language.toUpperCase() : "TOP CHARTS";
+
+	// Render Tracklist
+	if (albumSongsListEl) {
+		albumSongsListEl.innerHTML = "";
+		playlistObj.songs.forEach(function (song, idx) {
+			var trackRow = document.createElement("div");
+			trackRow.className = "album-track-row";
+			var isActive = (playlist === playlistObj.songs && playlist_index === idx);
+			if (isActive) trackRow.classList.add("active");
+
+			var isFav = (typeof FavoritesManager !== "undefined") && FavoritesManager.isFavorite(song);
+			var favIconClass = isFav ? "fa fa-heart" : "fa fa-heart-o";
+			var favActiveClass = isFav ? " active" : "";
+
+			trackRow.innerHTML =
+				'<div class="track-left-group">' +
+				'<div class="track-index">' + (idx + 1) + '</div>' +
+				'<img class="track-row-thumb" src="' + (song.cover || playlistObj.cover) + '" alt="' + song.title + '">' +
+				'<div class="track-row-info">' +
+				'<div class="track-row-title">' + song.title + '</div>' +
+				'<div class="track-row-artist">' + song.artist + '</div>' +
+				'</div>' +
+				'</div>' +
+				'<div class="track-right-group">' +
+				'<span class="track-duration">' + (song.durationStr || '3:30') + '</span>' +
+				'<button class="row-fav-btn' + favActiveClass + '" data-fav-song-title="' + song.title.replace(/"/g, '&quot;') + '" data-fav-song-artist="' + (song.artist || '').replace(/"/g, '&quot;') + '" title="' + (isFav ? 'Remove from Favorites' : 'Add to Favorites') + '"><i class="' + favIconClass + '"></i></button>' +
+				'<button class="track-play-btn" title="Play Track"><i class="fa fa-play"></i></button>' +
+				'</div>';
+
+			var favBtn = trackRow.querySelector(".row-fav-btn");
+			if (favBtn) {
+				favBtn.onclick = function (e) {
+					e.stopPropagation();
+					if (typeof FavoritesManager !== "undefined") {
+						FavoritesManager.toggleFavorite(song);
+					}
+				};
+			}
+
+			trackRow.onclick = function () {
+				playlist = playlistObj.songs;
+				playTrackAtIndex(idx);
+				updateAlbumActiveTrack(idx);
+			};
+
+			albumSongsListEl.appendChild(trackRow);
+		});
+	}
+
+	// Play All & Shuffle Buttons
+	var playAllBtn = document.getElementById("album_play_all_btn");
+	if (playAllBtn) {
+		playAllBtn.onclick = function () {
+			if (playlistObj.songs && playlistObj.songs.length > 0) {
+				playlist = playlistObj.songs;
+				playTrackAtIndex(0);
+				updateAlbumActiveTrack(0);
+			}
+		};
+	}
+
+	var shuffleBtn = document.getElementById("album_shuffle_btn");
+	if (shuffleBtn) {
+		shuffleBtn.onclick = function () {
+			if (playlistObj.songs && playlistObj.songs.length > 0) {
+				var shuffled = playlistObj.songs.slice().sort(function () { return 0.5 - Math.random(); });
+				playlist = shuffled;
+				playTrackAtIndex(0);
+				showToast("🔀 Shuffled & playing " + playlistObj.title);
+			}
+		};
+	}
+
+	var shareAlbumBtn = document.getElementById("share_album_btn");
+	if (shareAlbumBtn) {
+		shareAlbumBtn.onclick = function () {
+			var shareUrl = window.location.origin + window.location.pathname + "#playlist?id=" + encodeURIComponent(playlistId);
+			if (navigator.share) {
+				navigator.share({
+					title: playlistObj.title + " - Sangeetham Music",
+					text: "Listen to " + playlistObj.title + " on Sangeetham AI Music Player",
+					url: shareUrl
+				}).catch(function () { });
+			} else {
+				navigator.clipboard.writeText(shareUrl).then(function () {
+					showToast("🔗 Playlist link copied to clipboard!");
+				}).catch(function () {
+					showToast("Playlist Link: " + shareUrl);
+				});
+			}
+		};
+	}
+
+	if (autoPlay && playlistObj.songs && playlistObj.songs.length > 0) {
+		playlist = playlistObj.songs;
+		playTrackAtIndex(0);
+	}
+}
+
 function updateAlbumActiveTrack(index) {
 	var rows = document.querySelectorAll(".album-track-row");
 	rows.forEach(function (r, idx) {
@@ -2671,6 +3006,8 @@ async function handleUrlHashNavigation() {
 
 	if (route === "album" && params.id) {
 		openAlbumDetails(params.id, false);
+	} else if (route === "playlist" && params.id) {
+		openPlaylistDetails(params.id, false);
 	} else if (route === "lyrics") {
 		switchTab("lyrics", true);
 		if (params.song) {
@@ -2695,7 +3032,7 @@ async function handleUrlHashNavigation() {
 			var triggerFn = window.triggerSearchGlobal;
 			if (typeof triggerFn === "function") triggerFn(params.q);
 		}
-	} else if (["home", "favorites", "ai_chat", "motivational", "deep_focus", "latest"].indexOf(route) !== -1) {
+	} else if (["home", "favorites", "ai_chat", "motivational", "top_charts", "charts", "deep_focus", "latest"].indexOf(route) !== -1) {
 		switchTab(route, true);
 	}
 }
