@@ -3,11 +3,11 @@
 // This AI Music Player use JioSaavn Open Source API for music streaming.
 
 var topCharts = [
-	"Hindi: India Superhits Top 50",
+	"SP Balasubramanyam telugu hits",
+	"HSK 50 Most Popular Hindi Songs",
 	"Trending today",
 	"Random picks",
-	"Tamil: India Superhits Top 50",
-	"K. S. Chithra"
+	"K. S. Chithra telugu hits"
 ];
 
 // HTML entity decoder helper

@@ -4400,6 +4400,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 		flex-wrap: nowrap;
 		padding-bottom: 4px;
 		scrollbar-width: none;
+		max-width: 500px;
 	}
 
 	.search-chips::-webkit-scrollbar {
@@ -4650,7 +4651,9 @@ input[type='range']::-webkit-slider-thumb:hover {
 		padding: 0 10px;
 	}
 
-
+	.search-chips {
+		max-width: 400px;
+	}
 
 	.middle-container {
 		top: 68px;
@@ -4708,5 +4711,9 @@ input[type='range']::-webkit-slider-thumb:hover {
 	.pwa-banner-install-btn {
 		flex: 1;
 		justify-content: center;
+	}
+
+	.search-chips {
+		max-width: 380px;
 	}
 }
