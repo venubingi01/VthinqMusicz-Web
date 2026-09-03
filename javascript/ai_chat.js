@@ -198,10 +198,8 @@ function initAIChatBot() {
 			suggestions.forEach(function (promptText) {
 				var chip = document.createElement("button");
 				chip.className = "chat-chip";
+				chip.setAttribute("data-prompt", promptText);
 				chip.textContent = promptText;
-				chip.onclick = function () {
-					handleUserPrompt(promptText);
-				};
 				suggDiv.appendChild(chip);
 			});
 			bodyDiv.appendChild(suggDiv);
@@ -236,8 +234,11 @@ function initAIChatBot() {
 		if (el) el.remove();
 	}
 
+	var isChatProcessing = false;
+
 	async function handleUserPrompt(prompt) {
-		if (!prompt || !prompt.trim()) return;
+		if (!prompt || !prompt.trim() || isChatProcessing) return;
+		isChatProcessing = true;
 		var cleanPrompt = prompt.trim();
 		appendMessage("user", cleanPrompt);
 
@@ -251,6 +252,7 @@ function initAIChatBot() {
 		if (lower === "pause" || lower === "stop" || lower.includes("pause music")) {
 			setTimeout(function () {
 				removeTypingIndicator();
+				isChatProcessing = false;
 				if (typeof audio !== "undefined" && audio) {
 					audio.pause();
 				}
@@ -267,6 +269,7 @@ function initAIChatBot() {
 		if (lower === "play" || lower === "resume" || lower.includes("resume music") || lower === "start") {
 			setTimeout(function () {
 				removeTypingIndicator();
+				isChatProcessing = false;
 				if (typeof audio !== "undefined" && audio && audio.paused && audio.src) {
 					audio.play();
 					var playbtn = document.getElementById("playpausebtn");
@@ -285,6 +288,7 @@ function initAIChatBot() {
 		if (lower.includes("next") || lower.includes("skip")) {
 			setTimeout(function () {
 				removeTypingIndicator();
+				isChatProcessing = false;
 				var nextBtn = document.getElementById("next-s");
 				if (nextBtn) nextBtn.click();
 				var currentSong = (typeof playlist !== "undefined" && playlist && playlist[playlist_index]);
@@ -297,6 +301,7 @@ function initAIChatBot() {
 		if (lower.includes("lyric") || lower.includes("lyrics")) {
 			setTimeout(function () {
 				removeTypingIndicator();
+				isChatProcessing = false;
 				var lyricsModal = document.getElementById("lyrics_modal");
 				if (lyricsModal) {
 					lyricsModal.classList.add("active");
@@ -355,6 +360,8 @@ function initAIChatBot() {
 				"Deep Focus Lo-Fi",
 				"Workout Beats"
 			]);
+		} finally {
+			isChatProcessing = false;
 		}
 	}
 
@@ -437,13 +444,15 @@ function initAIChatBot() {
 		};
 	}
 
-	// Delegate chat chip clicks
+	// Delegate chat chip clicks with deduplication and stopPropagation
 	document.addEventListener("click", function (e) {
 		var chip = e.target.closest(".chat-chip");
 		if (chip) {
+			e.preventDefault();
+			e.stopPropagation();
 			var prompt = chip.getAttribute("data-prompt") || chip.textContent;
 			if (prompt) {
-				handleUserPrompt(prompt);
+				handleUserPrompt(prompt.trim());
 			}
 		}
 	});

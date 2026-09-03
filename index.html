@@ -25,10 +25,10 @@
    <link href="font-awesome/css/v4-shims.min.css" rel="stylesheet">
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
    <link rel="stylesheet" href="css/icons.min.css">
-   <link href="css/style.css?v=21" rel="stylesheet" type="text/css">
+   <link href="css/style.css?v=22" rel="stylesheet" type="text/css">
    <script type="text/javascript" src="javascript/crypto-js.min.js"></script>
    <script type="text/javascript" src="javascript/lyrics_service.js?v=2"></script>
-   <script type="text/javascript" src="javascript/audio_player.js?v=20"></script>
+   <script type="text/javascript" src="javascript/audio_player.js?v=21"></script>
    <script type="text/javascript" src="javascript/ai_chat.js?v=10"></script>
    <script type="text/javascript" src="javascript/pwa_install.js?v=9"></script>
    <script>
@@ -91,6 +91,8 @@
             <div class="col" data-tab="favorites"><i class="fa fa-heart"></i> <span>Favorites</span></div>
             <div class="col" data-tab="ai_chat"><i class="fa-solid fa-brain"></i> <span>Ask AI</span></div>
             <div class="col" data-tab="lyrics"><i class="fa fa-quote-right"></i> <span>Lyrics</span></div>
+            <div class="col" id="eq_nav_btn" data-tab="equalizer"><i class="fa-solid fa-sliders"></i> <span>EQ &
+                  3D</span></div>
             <div class="col" id="top_funding_btn" data-tab="settings"><i class="fa fa-cog"></i> <span>Settings</span>
             </div>
             <div class="clear"></div>
@@ -178,6 +180,21 @@
          <div id="songslistcon">
             <div class="no-songs">Use the search box above, try voice search, or tap a tag to discover millions of
                songs & albums.</div>
+         </div>
+
+         <!-- Lazy Load / Infinite Scroll Controls -->
+         <div id="search_lazy_controls" class="search-lazy-controls" style="display: none;">
+            <div id="search_lazy_loader" class="search-lazy-loader" style="display: none;">
+               <i class="fa fa-circle-o-notch fa-spin"></i>
+               <span>Loading more songs...</span>
+            </div>
+            <button id="search_load_more_btn" class="search-load-more-btn" style="display: none;">
+               <i class="fa-solid fa-angles-down"></i> Load More
+            </button>
+            <div id="search_end_notice" class="search-end-notice" style="display: none;">
+               <span>✨ You've reached the end of results</span>
+            </div>
+            <div id="search_scroll_sentinel" class="search-scroll-sentinel"></div>
          </div>
       </div>
    </div>
@@ -343,12 +360,19 @@
                <h2 id="lyrics_title">No Track Selected</h2>
                <p id="lyrics_artist">Select a song to load real-time synced lyrics</p>
                <div class="lyrics-badges-row">
+                  <span id="lyrics_hd_badge" class="lyrics-hd-badge is-hd"
+                     title="Streaming in 320kbps Ultra HD Studio Quality"><i class="fa-solid fa-bolt"></i> ULTRA HD
+                     320kbps</span>
                </div>
             </div>
 
             <div class="lyrics-controls-group">
                <button id="lyrics_fav_btn" class="lyrics-fav-action-btn" title="Add to Favorites">
                   <i class="fa fa-heart-o"></i> <span>Favorite</span>
+               </button>
+               <button id="lyrics_audio_fx_btn" class="lyrics-fav-action-btn lyrics-fx-btn"
+                  title="Equalizer & 3D Spatial Audio">
+                  <i class="fa-solid fa-sliders"></i> <span>EQ & 3D</span>
                </button>
                <div class="lyrics-live-badge" id="visualizer_toggle"><i class="fa-brands fa-soundcloud"></i>
                   <span>Visualizer</span>
@@ -500,6 +524,15 @@
                <i class="fa fa-angle-right"></i>
             </button>
 
+            <button id="modal_eq_option_btn" type="button" class="funding-option-card eq-theme-btn">
+               <span class="funding-emoji">🎛️</span>
+               <div class="funding-details">
+                  <h5>Studio Equalizer & 3D Spatial Audio</h5>
+                  <p>Fine-tune acoustic frequencies, presets & 360° surround</p>
+               </div>
+               <i class="fa fa-angle-right"></i>
+            </button>
+
             <div class="funding-options-list">
                <div target="_blank" rel="noopener" class="funding-option-card coffee-theme">
                   <span class="funding-emoji">☕</span>
@@ -624,6 +657,316 @@
       </div>
    </div>
 
+   <!-- Studio Audio Effects (Equalizer & 3D Spatial Audio) Modal -->
+   <div id="audio_fx_modal" class="modal-overlay">
+      <div class="modal-card audio-fx-modal-card">
+         <div class="modal-header fx-modal-header">
+            <div class="modal-title-box">
+               <i class="fa-solid fa-sliders modal-header-icon fx-header-icon"></i>
+               <div>
+                  <h3>Audio FX Studio</h3>
+                  <p>Equalizer & 3D Spatial Sound Engine</p>
+               </div>
+            </div>
+            <div class="fx-tab-nav">
+               <button type="button" id="fx_tab_eq_btn" class="fx-nav-tab active" data-fxtab="eq"><i
+                     class="fa-solid fa-sliders"></i> Equalizer</button>
+               <button type="button" id="fx_tab_spatial_btn" class="fx-nav-tab" data-fxtab="spatial"><i
+                     class="fa-solid fa-cube"></i> 3D Spatial</button>
+            </div>
+            <button id="close_audio_fx_modal" class="close-modal-btn" title="Close"><i class="fa fa-times"></i></button>
+         </div>
+
+         <div class="audio-fx-body">
+            <!-- TAB 1: EQUALIZER -->
+            <div id="fx_panel_eq" class="fx-tab-panel active">
+               <div class="fx-master-bar">
+                  <label class="fx-toggle-wrap" title="Enable / Disable Equalizer">
+                     <input type="checkbox" id="eq_enable_toggle" checked>
+                     <span class="fx-toggle-slider"></span>
+                     <span class="fx-toggle-label">EQ Active</span>
+                  </label>
+                  <div class="fx-preset-dropdown-wrap">
+                     <label for="eq_preset_select"><i class="fa fa-music"></i> Preset:</label>
+                     <select id="eq_preset_select" class="fx-select" title="Select Equalizer Preset">
+                        <option value="flat">Flat</option>
+                        <option value="bass_boost">Bass Booster 🔥</option>
+                        <option value="bass_reduce">Bass Reducer</option>
+                        <option value="treble_boost">Treble Booster ✨</option>
+                        <option value="vocal_boost">Vocal Booster 🎙️</option>
+                        <option value="rock">Rock 🎸</option>
+                        <option value="pop">Pop 🍭</option>
+                        <option value="jazz">Jazz 🎷</option>
+                        <option value="electronic">Electronic / EDM ⚡</option>
+                        <option value="classical">Classical 🎻</option>
+                        <option value="acoustic">Acoustic 🪕</option>
+                        <option value="hiphop">Hip Hop 🎧</option>
+                        <option value="cinema">Dolby Cinema 🎬</option>
+                        <option value="deep">Deep Lounge 🌙</option>
+                        <option value="custom">Custom 🎛️</option>
+                     </select>
+                  </div>
+                  <div class="fx-preset-dropdown-wrap fx-quality-wrap">
+                     <label for="audio_quality_select"><i class="fa-solid fa-bolt"></i> Stream:</label>
+                     <select id="audio_quality_select" class="fx-select" title="Audio Streaming Bitrate Quality">
+                        <option value="320" selected>320k Ultra HD 🔥</option>
+                        <option value="160">160k HQ</option>
+                     </select>
+                  </div>
+                  <button id="reset_eq_btn" class="fx-action-btn" title="Reset EQ to Flat"><i
+                        class="fa fa-rotate-left"></i> Reset</button>
+               </div>
+
+               <!-- Live Frequency Response Curve Canvas -->
+               <div class="eq-curve-container">
+                  <div class="eq-curve-header">
+                     <span><i class="fa-solid fa-chart-area"></i> Frequency Response</span>
+                     <span id="eq_active_preset_name" class="eq-preset-badge">Flat</span>
+                  </div>
+                  <div class="eq-canvas-wrapper">
+                     <canvas id="eq_curve_canvas" height="90"></canvas>
+                  </div>
+               </div>
+
+               <!-- Multi-Band Sliders -->
+               <div class="eq-bands-wrapper">
+                  <!-- Preamp Band -->
+                  <div class="eq-band-col preamp-band">
+                     <div class="band-gain-val" id="val_preamp">0dB</div>
+                     <div class="band-slider-track">
+                        <input type="range" class="eq-slider vertical" id="eq_band_preamp" min="-12" max="12" value="0"
+                           step="0.5" orient="vertical">
+                     </div>
+                     <div class="band-label">Preamp</div>
+                  </div>
+
+                  <!-- Band 1: 60Hz -->
+                  <div class="eq-band-col">
+                     <div class="band-gain-val" id="val_band_0">0dB</div>
+                     <div class="band-slider-track">
+                        <input type="range" class="eq-slider vertical" data-band="0" id="eq_band_0" min="-12" max="12"
+                           value="0" step="0.5" orient="vertical">
+                     </div>
+                     <div class="band-label">60Hz</div>
+                  </div>
+
+                  <!-- Band 2: 170Hz -->
+                  <div class="eq-band-col">
+                     <div class="band-gain-val" id="val_band_1">0dB</div>
+                     <div class="band-slider-track">
+                        <input type="range" class="eq-slider vertical" data-band="1" id="eq_band_1" min="-12" max="12"
+                           value="0" step="0.5" orient="vertical">
+                     </div>
+                     <div class="band-label">170Hz</div>
+                  </div>
+
+                  <!-- Band 3: 350Hz -->
+                  <div class="eq-band-col">
+                     <div class="band-gain-val" id="val_band_2">0dB</div>
+                     <div class="band-slider-track">
+                        <input type="range" class="eq-slider vertical" data-band="2" id="eq_band_2" min="-12" max="12"
+                           value="0" step="0.5" orient="vertical">
+                     </div>
+                     <div class="band-label">350Hz</div>
+                  </div>
+
+                  <!-- Band 4: 1kHz -->
+                  <div class="eq-band-col">
+                     <div class="band-gain-val" id="val_band_3">0dB</div>
+                     <div class="band-slider-track">
+                        <input type="range" class="eq-slider vertical" data-band="3" id="eq_band_3" min="-12" max="12"
+                           value="0" step="0.5" orient="vertical">
+                     </div>
+                     <div class="band-label">1kHz</div>
+                  </div>
+
+                  <!-- Band 5: 3.5kHz -->
+                  <div class="eq-band-col">
+                     <div class="band-gain-val" id="val_band_4">0dB</div>
+                     <div class="band-slider-track">
+                        <input type="range" class="eq-slider vertical" data-band="4" id="eq_band_4" min="-12" max="12"
+                           value="0" step="0.5" orient="vertical">
+                     </div>
+                     <div class="band-label">3.5kHz</div>
+                  </div>
+
+                  <!-- Band 6: 10kHz -->
+                  <div class="eq-band-col">
+                     <div class="band-gain-val" id="val_band_5">0dB</div>
+                     <div class="band-slider-track">
+                        <input type="range" class="eq-slider vertical" data-band="5" id="eq_band_5" min="-12" max="12"
+                           value="0" step="0.5" orient="vertical">
+                     </div>
+                     <div class="band-label">10kHz</div>
+                  </div>
+
+                  <!-- Band 7: 14kHz -->
+                  <div class="eq-band-col">
+                     <div class="band-gain-val" id="val_band_6">0dB</div>
+                     <div class="band-slider-track">
+                        <input type="range" class="eq-slider vertical" data-band="6" id="eq_band_6" min="-12" max="12"
+                           value="0" step="0.5" orient="vertical">
+                     </div>
+                     <div class="band-label">14kHz</div>
+                  </div>
+               </div>
+
+               <!-- Quick Preset Chips -->
+               <div class="eq-quick-chips" id="eq_quick_chips">
+                  <button type="button" class="eq-chip active" data-preset="flat">Flat</button>
+                  <button type="button" class="eq-chip" data-preset="bass_boost">🔥 Bass Boost</button>
+                  <button type="button" class="eq-chip" data-preset="vocal_boost">🎙️ Vocal</button>
+                  <button type="button" class="eq-chip" data-preset="rock">🎸 Rock</button>
+                  <button type="button" class="eq-chip" data-preset="pop">🍭 Pop</button>
+                  <button type="button" class="eq-chip" data-preset="electronic">⚡ EDM</button>
+                  <button type="button" class="eq-chip" data-preset="cinema">🎬 Cinema</button>
+                  <button type="button" class="eq-chip" data-preset="acoustic">🪕 Acoustic</button>
+                  <button type="button" class="eq-chip" data-preset="jazz">🎷 Jazz</button>
+                  <button type="button" class="eq-chip" data-preset="deep">🌙 Deep</button>
+               </div>
+
+               <!-- Visualizer Beat Sensitivity -->
+               <div class="fx-sens-card">
+                  <div class="fx-sens-header">
+                     <span><i class="fa-solid fa-bolt"></i> Beat Visualizer Sensitivity</span>
+                     <span id="sens_val_badge" class="sens-val-badge">1.0x</span>
+                  </div>
+                  <div class="fx-sens-slider-wrap">
+                     <i class="fa-solid fa-gauge-simple"></i>
+                     <input id="sensitivity_slider" type="range" min="0.5" max="2.5" value="1.0" step="0.1"
+                        class="fx-range-slider" title="Visualizer Sensitivity">
+                     <i class="fa-solid fa-gauge-high"></i>
+                  </div>
+               </div>
+            </div>
+
+            <!-- TAB 2: 3D SPATIAL AUDIO -->
+            <div id="fx_panel_spatial" class="fx-tab-panel">
+               <div class="fx-master-bar">
+                  <label class="fx-toggle-wrap" title="Enable / Disable 3D Spatial Audio">
+                     <input type="checkbox" id="spatial_enable_toggle">
+                     <span class="fx-toggle-slider"></span>
+                     <span class="fx-toggle-label">3D Spatial Active</span>
+                  </label>
+                  <span id="spatial_status_badge" class="spatial-status-badge">Stereo Direct</span>
+                  <button id="reset_spatial_btn" class="fx-action-btn" title="Reset Spatial Audio Settings"><i
+                        class="fa fa-rotate-left"></i> Reset</button>
+               </div>
+
+               <!-- Spatial Mode Selection Cards Grid -->
+               <div class="spatial-modes-grid" id="spatial_modes_grid">
+                  <div class="spatial-mode-card active" data-mode="orbit">
+                     <div class="mode-icon-box"><i class="fa-solid fa-arrows-spin"></i></div>
+                     <div class="mode-info">
+                        <h4>360° Spatial Orbit</h4>
+                        <p>Dynamic audio rotating 360° around your head in 3D</p>
+                     </div>
+                     <span class="mode-tag">Dynamic</span>
+                  </div>
+
+                  <div class="spatial-mode-card" data-mode="wide">
+                     <div class="mode-icon-box"><i class="fa-solid fa-arrows-left-right-to-line"></i></div>
+                     <div class="mode-info">
+                        <h4>Holographic Wide 3D</h4>
+                        <p>Ultra-wide binaural soundstage expansion</p>
+                     </div>
+                     <span class="mode-tag">Headphones</span>
+                  </div>
+
+                  <div class="spatial-mode-card" data-mode="hall">
+                     <div class="mode-icon-box"><i class="fa-solid fa-landmark-dome"></i></div>
+                     <div class="mode-info">
+                        <h4>Concert Hall 3D</h4>
+                        <p>Live auditorium acoustics with rich natural reverb</p>
+                     </div>
+                     <span class="mode-tag">Live</span>
+                  </div>
+
+                  <div class="spatial-mode-card" data-mode="cinema">
+                     <div class="mode-icon-box"><i class="fa-solid fa-film"></i></div>
+                     <div class="mode-info">
+                        <h4>Dolby Studio Cinema</h4>
+                        <p>Deep cinematic immersion with sub-bass depth</p>
+                     </div>
+                     <span class="mode-tag">Cinema</span>
+                  </div>
+
+                  <div class="spatial-mode-card" data-mode="vocal">
+                     <div class="mode-icon-box"><i class="fa-solid fa-microphone-lines"></i></div>
+                     <div class="mode-info">
+                        <h4>Vocal Front Stage</h4>
+                        <p>Front-center vocal clarity with surround background</p>
+                     </div>
+                     <span class="mode-tag">Vocal</span>
+                  </div>
+               </div>
+
+               <!-- Interactive 3D Spatial Radar Visualizer & Orbit Controls -->
+               <div class="spatial-radar-section">
+                  <div class="spatial-radar-card">
+                     <div class="radar-header">
+                        <span><i class="fa-solid fa-radar"></i> Interactive 3D Soundstage</span>
+                        <span class="radar-drag-hint"><i class="fa-solid fa-hand-pointer"></i> Drag sound source</span>
+                     </div>
+                     <div class="radar-canvas-container" id="spatial_radar_container">
+                        <canvas id="spatial_radar_canvas" width="280" height="200"></canvas>
+                        <div class="radar-hud-readout">
+                           <span id="radar_angle_val">Angle: 0° (Front)</span>
+                           <span id="radar_dist_val">Distance: 1.5m</span>
+                        </div>
+                     </div>
+                  </div>
+
+                  <!-- Spatial Tuning Sliders -->
+                  <div class="spatial-controls-card">
+                     <div class="spatial-control-row">
+                        <div class="control-label-box">
+                           <span><i class="fa-solid fa-rotate"></i> 360° Orbit Speed</span>
+                           <span id="spatial_orbit_speed_val" class="control-val">1.0x</span>
+                        </div>
+                        <div class="slider-with-btn">
+                           <input type="range" id="spatial_orbit_speed" min="0.2" max="3.0" value="1.0" step="0.1"
+                              class="fx-range-slider">
+                           <button type="button" id="spatial_orbit_toggle_btn" class="orbit-toggle-btn active"
+                              title="Toggle Auto-Orbiting">
+                              <i class="fa-solid fa-circle-play"></i> Auto Orbit
+                           </button>
+                        </div>
+                     </div>
+
+                     <div class="spatial-control-row">
+                        <div class="control-label-box">
+                           <span><i class="fa-solid fa-arrows-left-right"></i> Soundstage Width</span>
+                           <span id="spatial_width_val" class="control-val">120%</span>
+                        </div>
+                        <input type="range" id="spatial_width_slider" min="0" max="200" value="120" step="5"
+                           class="fx-range-slider">
+                     </div>
+
+                     <div class="spatial-control-row">
+                        <div class="control-label-box">
+                           <span><i class="fa-solid fa-water"></i> Room & Reverb Size</span>
+                           <span id="spatial_reverb_val" class="control-val">35%</span>
+                        </div>
+                        <input type="range" id="spatial_reverb_slider" min="0" max="100" value="35" step="2"
+                           class="fx-range-slider">
+                     </div>
+
+                     <div class="spatial-control-row">
+                        <div class="control-label-box">
+                           <span><i class="fa-solid fa-drum"></i> Sub-Bass Immersion</span>
+                           <span id="spatial_bass_val" class="control-val">+3 dB</span>
+                        </div>
+                        <input type="range" id="spatial_bass_slider" min="0" max="10" value="3" step="0.5"
+                           class="fx-range-slider">
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+
    <!-- Interactive Toast Notification -->
    <div id="app_toast" class="toast-notification">
       <i class="fa fa-check-circle toast-icon"></i>
@@ -636,7 +979,11 @@
             src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80"
             alt="Track Cover">
          <div class="player-text">
-            <h1 id="playlist_status">Select a track to start playback</h1>
+            <div class="player-title-row">
+               <h1 id="playlist_status">Select a track to start playback</h1>
+               <span id="player_hd_badge" class="audio-hd-badge is-hd"
+                  title="Streaming in 320kbps Ultra HD Studio Quality"><i class="fa-solid fa-bolt"></i> HD</span>
+            </div>
          </div>
          <button id="player_fav_btn" class="player-fav-btn" title="Add to Favorites"><i
                class="fa fa-heart-o"></i></button>
@@ -667,37 +1014,11 @@
          <button id="playpausebtn" class="play" title="Play/Pause"><i class="fa fa-play"></i><i
                class="fa fa-pause"></i></button>
          <button id="next-s" title="Next Track"><i class="fa fa-angle-right"></i></button>
-         <!-- <button id="loop_btn" title="Toggle Loop"><i class="fa fa-repeat"></i></button> -->
-         <!--   <button id="lyrics_btn" class="lyrics-control-btn" title="Toggle Synced Lyrics Overlay"><i
-                  class="fa fa-quote-right"></i> Lyrics</button>
-            
-            <select id="style_select" class="style-select" title="Choose Visualizer Style">
-               <option value="Classic">📊 Classic Bars</option>
-               <option value="Neon Wave">🌊 Neon Wave</option>
-               <option value="Peak Caps">🔝 Peak Caps</option>
-               <option value="Radial Pulse">⭕ Radial Pulse</option>
-               <option value="Particle Burst">✨ Particle Burst</option>
-               <option value="Mirror Spectrum">🪞 Mirror Spectrum</option>
-            </select>
 
-            <select id="theme_select" class="style-select theme-select" title="Choose Color Theme">
-               <option value="midnight" selected>🖤 Midnight Black</option>
-               <option value="cyberpunk">⚡ Cyberpunk</option>
-               <option value="sunset">🔥 Sunset Fire</option>
-               <option value="emerald">🟢 Matrix Emerald</option>
-               <option value="violet">💜 Electric Violet</option>
-               <option value="ocean">🌊 Ocean Breeze</option>
-            </select> -->
-
-         <div class="sens-control" title="Visualizer Sensitivity">
-            <i class="fa fa-bolt"></i>
-            <input id="sensitivity_slider" type="range" min="0.5" max="2.5" value="1.0" step="0.1">
-         </div>
-
-         <!-- <button id="visualizer_toggle" class="glow-btn viz-toggle-btn" title="Toggle Visualizer">
-               <i class="fa-brands fa-soundcloud"></i></button> -->
-
-         <!-- <button id="glow_toggle" class="glow-btn" title="Toggle Beat Glow"><i class="fa fa-sun-o"></i></button> -->
+         <button id="audio_fx_btn" class="glow-btn audio-fx-btn" title="Equalizer & 3D Spatial Audio">
+            <i class="fa-solid fa-sliders"></i>
+            <span class="fx-active-dot" id="fx_active_dot"></span>
+         </button>
 
          <input id="seekslider" type="range" min="0" max="500" value="0" step="1">
          <div id="timebox">
