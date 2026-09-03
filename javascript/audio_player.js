@@ -2418,11 +2418,11 @@ function updatePlayerMetadata(song) {
 	if (lyricsHdBadge) {
 		if (is320k) {
 			lyricsHdBadge.className = "lyrics-hd-badge is-hd active";
-			lyricsHdBadge.innerHTML = '<i class="fa-solid fa-bolt"></i> ULTRA HD 320KBPS';
+			lyricsHdBadge.innerHTML = '<i class="fa-solid fa-bolt"></i> ULTRA HD ';
 			lyricsHdBadge.title = "Streaming in 320kbps Ultra HD Studio Quality 🔥";
 		} else {
 			lyricsHdBadge.className = "lyrics-hd-badge is-hq active";
-			lyricsHdBadge.innerHTML = '<i class="fa-solid fa-music"></i> HIGH QUALITY 160KBPS';
+			lyricsHdBadge.innerHTML = '<i class="fa-solid fa-music"></i> HIGH QUALITY ';
 			lyricsHdBadge.title = "Streaming in 160kbps High Quality";
 		}
 	}
