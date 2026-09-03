@@ -76,6 +76,7 @@
 
 			var btn = document.getElementById("show_video_btn");
 			var leftPanel = document.getElementById("lyrics_left_panel");
+			var rightPanel = document.getElementById("lyrics_right_panel");
 			var artWrapper = document.getElementById("lyrics_art_wrapper");
 			var videoBg = document.getElementById("lyrics_panel_video_bg");
 			var videoBar = document.getElementById("video_loop_bar");
@@ -87,6 +88,7 @@
 					btn.innerHTML = '<i class="fa-solid fa-image"></i> <span id="show_video_btn_text">Hide Video</span>';
 				}
 				if (leftPanel) leftPanel.classList.add("video-mode-active");
+				if (rightPanel) rightPanel.classList.add("video-mode-active");
 				if (artWrapper) artWrapper.style.display = "none";
 				if (videoBg) videoBg.style.display = "block";
 				if (videoBar) videoBar.style.display = "flex";
@@ -97,6 +99,7 @@
 					btn.innerHTML = '<i class="fa-solid fa-play"></i> <span id="show_video_btn_text">Show Video</span>';
 				}
 				if (leftPanel) leftPanel.classList.remove("video-mode-active");
+				if (rightPanel) rightPanel.classList.remove("video-mode-active");
 				if (artWrapper) artWrapper.style.display = "";
 				if (videoBg) videoBg.style.display = "none";
 				if (videoBar) videoBar.style.display = "none";
