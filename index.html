@@ -30,6 +30,7 @@
    <script type="text/javascript" src="javascript/lyrics_service.js?v=2"></script>
    <script type="text/javascript" src="javascript/audio_player.js?v=21"></script>
    <script type="text/javascript" src="javascript/ai_chat.js?v=10"></script>
+   <script type="text/javascript" src="javascript/feedback.js?v=1"></script>
    <script type="text/javascript" src="javascript/pwa_install.js?v=9"></script>
    <script>
       if ('serviceWorker' in navigator) {
@@ -468,20 +469,27 @@
                   <input type="text" id="fb_name" placeholder="Your name" required>
                </div>
                <div class="form-group col-half">
-                  <label for="fb_category">Category</label>
-                  <select id="fb_category">
-                     <option value="General">💬 General Feedback</option>
-                     <option value="Bug">🐛 Bug Report</option>
-                     <option value="Feature">✨ Feature Request</option>
-                     <option value="Audio">🎵 Music / Playback</option>
-                  </select>
+                  <label for="fb_email">Email / Contact <span class="optional-label">(Optional)</span></label>
+                  <input type="email" id="fb_email" placeholder="your@email.com">
                </div>
             </div>
             <div class="form-group">
-               <label for="fb_message">Message</label>
-               <textarea id="fb_message" rows="4" placeholder="How can we make Sangeetham better?" required></textarea>
+               <label for="fb_category">Category</label>
+               <select id="fb_category">
+                  <option value="General">💬 General Feedback & Compliment</option>
+                  <option value="Bug">🐛 Bug Report / Issue</option>
+                  <option value="Feature">✨ Feature Request & Idea</option>
+                  <option value="Audio">🎵 Music Playback & Audio FX</option>
+                  <option value="UI">🎨 Design & User Experience</option>
+               </select>
             </div>
-            <button type="submit" class="submit-modal-btn"><i class="fa fa-paper-plane"></i> Submit Feedback</button>
+            <div class="form-group">
+               <label for="fb_message">Message</label>
+               <textarea id="fb_message" rows="4" placeholder="Share your experience, suggest an idea, or report an issue..." required></textarea>
+            </div>
+            <button type="submit" id="fb_submit_btn" class="submit-modal-btn">
+               <i class="fa fa-paper-plane"></i> <span>Submit Feedback</span>
+            </button>
          </form>
       </div>
    </div>

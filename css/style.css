@@ -2123,9 +2123,24 @@ input[type='range']::-webkit-slider-thumb:hover {
 	align-items: center;
 	justify-content: center;
 	gap: 8px;
-	box-shadow: 0 6px 20px rgba(255, 45, 73, 0.4);
-	transition: all 0.25s ease;
-	margin-top: 6px;
+	transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+	box-shadow: 0 4px 16px rgba(255, 45, 73, 0.35);
+}
+
+.submit-modal-btn:disabled {
+	opacity: 0.75;
+	cursor: not-allowed;
+	transform: none !important;
+	box-shadow: none !important;
+}
+
+.optional-label {
+	font-size: 10.5px;
+	font-weight: 500;
+	color: var(--text-muted);
+	text-transform: none;
+	letter-spacing: normal;
+	margin-left: 4px;
 }
 
 .submit-modal-btn:hover {

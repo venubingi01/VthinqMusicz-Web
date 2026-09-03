@@ -3839,10 +3839,6 @@ function initAudioPlayer() {
 	var feedbackModal = document.getElementById("feedback_modal");
 	var fundingModal = document.getElementById("funding_modal");
 
-	var topFbBtn = document.getElementById("top_feedback_btn");
-	var footerFbBtn = document.getElementById("footer_feedback_btn");
-	var closeFbBtn = document.getElementById("close_feedback_modal");
-
 	var topFundBtn = document.getElementById("top_funding_btn");
 	var footerFundBtn = document.getElementById("footer_funding_btn");
 	var closeFundBtn = document.getElementById("close_funding_modal");
@@ -3855,21 +3851,9 @@ function initAudioPlayer() {
 		if (modal) modal.classList.remove("active");
 	}
 
-	if (topFbBtn) topFbBtn.addEventListener("click", function () { openModal(feedbackModal); });
-	if (footerFbBtn) footerFbBtn.addEventListener("click", function () { openModal(feedbackModal); });
-	if (closeFbBtn) closeFbBtn.addEventListener("click", function () { closeModal(feedbackModal); });
-
 	if (topFundBtn) topFundBtn.addEventListener("click", function () { openModal(fundingModal); });
 	if (footerFundBtn) footerFundBtn.addEventListener("click", function () { openModal(fundingModal); });
-	if (closeFundBtn) closeFundBtn.addEventListener("click", function () { closeModal(fundingModal); switchTab("search") });
-
-	var modalFbOptionBtn = document.getElementById("modal_feedback_option_btn");
-	if (modalFbOptionBtn) {
-		modalFbOptionBtn.addEventListener("click", function () {
-			closeModal(fundingModal);
-			openModal(feedbackModal);
-		});
-	}
+	if (closeFundBtn) closeFundBtn.addEventListener("click", function () { closeModal(fundingModal); switchTab("search"); });
 
 	var modalEqOptionBtn = document.getElementById("modal_eq_option_btn");
 	if (modalEqOptionBtn) {
@@ -4118,45 +4102,7 @@ function initAudioPlayer() {
 		bassSlider.addEventListener("change", updateBass);
 	}
 
-	// Star Rating Selection
-	var selectedStars = 5;
-	var stars = document.querySelectorAll("#star_rating .star-btn");
-	stars.forEach(function (starEl) {
-		starEl.addEventListener("click", function () {
-			var rating = parseInt(this.getAttribute("data-star"), 10);
-			selectedStars = rating;
-			stars.forEach(function (s, idx) {
-				s.classList.toggle("active", idx < rating);
-			});
-		});
-	});
 
-	// Feedback Form Submission
-	var feedbackForm = document.getElementById("feedback_form");
-	if (feedbackForm) {
-		feedbackForm.addEventListener("submit", function (e) {
-			e.preventDefault();
-			var name = document.getElementById("fb_name").value;
-			var category = document.getElementById("fb_category").value;
-			var message = document.getElementById("fb_message").value;
-
-			var feedbackObj = {
-				name: name,
-				category: category,
-				message: message,
-				rating: selectedStars,
-				timestamp: new Date().toISOString()
-			};
-
-			var existingFb = JSON.parse(localStorage.getItem("sangeetham_feedback") || "[]");
-			existingFb.push(feedbackObj);
-			localStorage.setItem("sangeetham_feedback", JSON.stringify(existingFb));
-
-			closeModal(feedbackModal);
-			feedbackForm.reset();
-			showToast("Thank you, " + name + "! Your feedback has been sent to Vthinq. ❤️");
-		});
-	}
 
 	// Copy UPI ID Handler
 	var copyUpiBtn = document.getElementById("copy_upi_btn");
