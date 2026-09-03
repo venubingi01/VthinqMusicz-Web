@@ -2487,6 +2487,9 @@ async function loadLyricsForCurrentSong(forceReload) {
 	}
 
 	currentLyricsSongKey = songKey;
+	if (window.RealVideoLooper && typeof window.RealVideoLooper.onSongChange === "function") {
+		window.RealVideoLooper.onSongChange(song);
+	}
 
 	var lyricsCover = document.getElementById("lyrics_cover");
 	var modalCover = document.getElementById("modal_lyrics_cover");
@@ -2657,6 +2660,9 @@ function playTrackAtIndex(index) {
 	var song = playlist[playlist_index];
 	updatePlayerMetadata(song);
 	loadLyricsForCurrentSong();
+	if (window.RealVideoLooper && typeof window.RealVideoLooper.onSongChange === "function") {
+		window.RealVideoLooper.onSongChange(song);
+	}
 
 	if (context && context.state === 'suspended') {
 		context.resume();
@@ -3083,13 +3089,6 @@ function switchTab(tabName, skipHashUpdate) {
 		} else if (tabName === "search") {
 			if (viewTitle) viewTitle.textContent = "Search Music";
 			updateSearchFilterPillsUI();
-			var songsContainer = document.getElementById("songslistcon");
-			var currentQ = songSearch ? songSearch.value.trim() : "";
-			if (currentQ && songsContainer && (!songsContainer.hasChildNodes() || songsContainer.querySelector(".no-songs"))) {
-				if (typeof window.triggerSearchGlobal === "function") {
-					window.triggerSearchGlobal(currentQ);
-				}
-			}
 			if (!skipHashUpdate) updateUrlHash("search");
 		}
 	}
@@ -3430,7 +3429,9 @@ function initAudioPlayer() {
 		}
 
 		if (clearSearchBtn) clearSearchBtn.style.display = "flex";
-		switchTab("search");
+		if (activeTab !== "search") {
+			switchTab("search");
+		}
 
 		var songsContainer = document.getElementById("songslistcon");
 		if (songsContainer) {

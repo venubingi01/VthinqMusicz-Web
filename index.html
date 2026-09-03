@@ -28,6 +28,7 @@
    <link href="css/style.css?v=22" rel="stylesheet" type="text/css">
    <script type="text/javascript" src="javascript/crypto-js.min.js"></script>
    <script type="text/javascript" src="javascript/lyrics_service.js?v=2"></script>
+   <script type="text/javascript" src="javascript/lyrics_video.js?v=2"></script>
    <script type="text/javascript" src="javascript/audio_player.js?v=21"></script>
    <script type="text/javascript" src="javascript/ai_chat.js?v=10"></script>
    <script type="text/javascript" src="javascript/feedback.js?v=1"></script>
@@ -342,59 +343,95 @@
       </div>
    </div>
 
-   <!-- Dedicated Synced Lyrics View (Apple Music Style Split View) -->
+   <!-- Dedicated Synced Lyrics View with Real Looping Video -->
    <div id="lyrics_view" class="view-screen">
+      <div id="lyrics_backdrop_video_container" class="lyrics-backdrop-video-container"></div>
       <div class="innerscreen lyrics-split-layout">
          <!-- back button -->
          <div id="lyrics_back_btn" class="back-btn">
             <i class="fa fa-close"></i>
          </div>
-         <!-- Left Column: Ambient Artwork & Metadata -->
-         <div class="lyrics-left-panel">
-            <div class="lyrics-art-wrapper">
+         <!-- Left Column: Ambient Artwork, Full Bleed Video Loop & Metadata -->
+         <div class="lyrics-left-panel" id="lyrics_left_panel">
+            <!-- Full Bleed Looping Video Background inside lyrics-left-panel (Spotify Canvas style) -->
+            <div class="lyrics-panel-video-bg" id="lyrics_panel_video_bg" style="display: none;">
+               <div id="lyrics_video_embed_container" class="video-embed-container"></div>
+               <div class="lyrics-panel-video-overlay"></div>
+               <div class="video-loop-loader" id="video_loop_loader" style="display: none;">
+                  <i class="fa fa-circle-o-notch fa-spin"></i>
+                  <span>Finding Music Video...</span>
+               </div>
+               <!-- <div class="canvas-pill-badge">
+                  <i class="fa-brands fa-spotify"></i> CANVAS
+               </div> -->
+            </div>
+
+            <!-- Show Video Toggle Button (Visible only when video is available for the song) -->
+            <div class="lyrics-video-btn-wrapper" id="lyrics_video_btn_wrapper">
+               <button type="button" class="show-video-btn" id="show_video_btn" style="display: none;"
+                  title="Watch Music Video in Loop">
+                  <i class="fa-solid fa-play"></i> <span id="show_video_btn_text">Show Video</span>
+               </button>
+            </div>
+
+            <div class="lyrics-art-wrapper" id="lyrics_art_wrapper">
                <div class="lyrics-art-glow" id="lyrics_art_glow"></div>
                <img id="lyrics_cover" class="lyrics-cover-large"
                   src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80"
                   alt="Song Cover">
             </div>
-            <div class="lyrics-track-details">
-               <h2 id="lyrics_title">No Track Selected</h2>
-               <p id="lyrics_artist">Select a song to load real-time synced lyrics</p>
-               <div class="lyrics-badges-row">
-                  <span id="lyrics_hd_badge" class="lyrics-hd-badge is-hd"
-                     title="Streaming in 320kbps Ultra HD Studio Quality"><i class="fa-solid fa-bolt"></i> ULTRA HD
-                     320kbps</span>
-               </div>
-            </div>
 
-            <div class="lyrics-controls-group">
-               <button id="lyrics_fav_btn" class="lyrics-fav-action-btn" title="Add to Favorites">
-                  <i class="fa fa-heart-o"></i> <span>Favorite</span>
-               </button>
-               <button id="lyrics_audio_fx_btn" class="lyrics-fav-action-btn lyrics-fx-btn"
-                  title="Equalizer & 3D Spatial Audio">
-                  <i class="fa-solid fa-sliders"></i> <span>EQ & 3D</span>
-               </button>
-               <div class="lyrics-live-badge" id="visualizer_toggle"><i class="fa-brands fa-soundcloud"></i>
-                  <span>Visualizer</span>
-                  <span class="floating-pulse-ring"></span>
-               </div>
-               <button id="share_lyrics_btn" class="lyrics-share-action-btn" title="Share Live Lyrics Link">
-                  <i class="fa-solid fa-share-nodes"></i> <span>Share</span>
-               </button>
-            </div>
-
-
-            <footer class="app-footer">
-               <div class="footer-container">
-                  <div class="dev-credits">
-                     <span class="dev-tag"><i class="fa fa-code"></i> Crafted with ❤️ by <a
-                           style="text-decoration: none;" href="https://www.linkedin.com/in/venu-bingi-bbb9689a"
-                           target="_blank" rel="noopener"><strong>Venu
-                              Bingi</strong></a></span>
+            <div class="lyrics-panel-content-bottom">
+               <div class="lyrics-track-details">
+                  <h2 id="lyrics_title">No Track Selected</h2>
+                  <p id="lyrics_artist">Select a song to load real-time synced lyrics</p>
+                  <div class="lyrics-badges-row">
+                     <span id="lyrics_hd_badge" class="lyrics-hd-badge is-hd"
+                        title="Streaming in 320kbps Ultra HD Studio Quality"><i class="fa-solid fa-bolt"></i> ULTRA HD
+                        320kbps</span>
                   </div>
                </div>
-            </footer>
+
+               <div class="lyrics-controls-group">
+                  <button id="lyrics_fav_btn" class="lyrics-fav-action-btn" title="Add to Favorites">
+                     <i class="fa fa-heart-o"></i> <span>Favorite</span>
+                  </button>
+                  <button id="lyrics_audio_fx_btn" class="lyrics-fav-action-btn lyrics-fx-btn"
+                     title="Equalizer & 3D Spatial Audio">
+                     <i class="fa-solid fa-sliders"></i> <span>EQ & 3D</span>
+                  </button>
+                  <div class="lyrics-live-badge" id="visualizer_toggle"><i class="fa-brands fa-soundcloud"></i>
+                     <span>Visualizer</span>
+                     <span class="floating-pulse-ring"></span>
+                  </div>
+                  <button id="share_lyrics_btn" class="lyrics-share-action-btn" title="Share Live Lyrics Link">
+                     <i class="fa-solid fa-share-nodes"></i> <span>Share</span>
+                  </button>
+               </div>
+
+               <!-- Video Loop Control Toolbar -->
+               <!-- <div class="video-loop-bar" id="video_loop_bar" style="display: none;">
+                  <button type="button" class="video-loop-tool-btn" id="video_loop_change_btn"
+                     title="Change or Paste YouTube Link">
+                     <i class="fa-solid fa-link"></i> <span>Custom Video</span>
+                  </button>
+               </div> -->
+               <div class="video-loop-custom-tray" id="video_loop_custom_tray" style="display: none;">
+                  <input type="text" id="video_loop_custom_input" placeholder="Paste YouTube link or video ID...">
+                  <button type="button" id="video_loop_custom_submit"><i class="fa fa-play"></i> Loop</button>
+               </div>
+
+               <footer class="app-footer">
+                  <div class="footer-container">
+                     <div class="dev-credits">
+                        <span class="dev-tag"><i class="fa fa-code"></i> Crafted with ❤️ by <a
+                              style="text-decoration: none;" href="https://www.linkedin.com/in/venu-bingi-bbb9689a"
+                              target="_blank" rel="noopener"><strong>Venu
+                                 Bingi</strong></a></span>
+                     </div>
+                  </div>
+               </footer>
+            </div>
          </div>
 
          <!-- Right Column: Karaoke Synced Lyrics Container -->
@@ -485,7 +522,8 @@
             </div>
             <div class="form-group">
                <label for="fb_message">Message</label>
-               <textarea id="fb_message" rows="4" placeholder="Share your experience, suggest an idea, or report an issue..." required></textarea>
+               <textarea id="fb_message" rows="4"
+                  placeholder="Share your experience, suggest an idea, or report an issue..." required></textarea>
             </div>
             <button type="submit" id="fb_submit_btn" class="submit-modal-btn">
                <i class="fa fa-paper-plane"></i> <span>Submit Feedback</span>
