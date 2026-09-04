@@ -25,12 +25,12 @@
    <link href="font-awesome/css/v4-shims.min.css" rel="stylesheet">
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
    <link rel="stylesheet" href="css/icons.min.css">
-   <link href="css/style.css?v=22" rel="stylesheet" type="text/css">
+   <link href="css/style.css?v=27" rel="stylesheet" type="text/css">
    <script type="text/javascript" src="javascript/crypto-js.min.js"></script>
    <script type="text/javascript" src="javascript/lyrics_service.js?v=2"></script>
-   <script type="text/javascript" src="javascript/lyrics_video.js?v=2"></script>
-   <script type="text/javascript" src="javascript/audio_player.js?v=21"></script>
-   <script type="text/javascript" src="javascript/ai_chat.js?v=10"></script>
+   <script type="text/javascript" src="javascript/lyrics_video.js?v=6"></script>
+   <script type="text/javascript" src="javascript/audio_player.js?v=25"></script>
+   <script type="text/javascript" src="javascript/ai_chat.js?v=12"></script>
    <script type="text/javascript" src="javascript/feedback.js?v=1"></script>
    <script type="text/javascript" src="javascript/pwa_install.js?v=9"></script>
    <script>
@@ -351,6 +351,17 @@
          <div id="lyrics_back_btn" class="back-btn">
             <i class="fa fa-close"></i>
          </div>
+
+         <!-- Mobile View Mode Switcher (Cover & Video vs Synced Lyrics) -->
+         <div class="mobile-lyrics-segmented-bar" id="mobile_lyrics_segmented_bar">
+            <button type="button" class="mobile-segment-btn active" id="mobile_seg_cover_btn">
+               <i class="fa-solid fa-image"></i> <span>Song & Video</span>
+            </button>
+            <button type="button" class="mobile-segment-btn" id="mobile_seg_lyrics_btn">
+               <i class="fa-solid fa-quote-right"></i> <span>Synced Lyrics</span>
+            </button>
+         </div>
+
          <!-- Left Column: Ambient Artwork, Full Bleed Video Loop & Metadata -->
          <div class="lyrics-left-panel" id="lyrics_left_panel">
             <!-- Full Bleed Looping Video Background inside lyrics-left-panel (Spotify Canvas style) -->
@@ -361,17 +372,6 @@
                   <i class="fa fa-circle-o-notch fa-spin"></i>
                   <span>Finding Music Video...</span>
                </div>
-               <!-- <div class="canvas-pill-badge">
-                  <i class="fa-brands fa-spotify"></i> CANVAS
-               </div> -->
-            </div>
-
-            <!-- Show Video Toggle Button (Visible only when video is available for the song) -->
-            <div class="lyrics-video-btn-wrapper" id="lyrics_video_btn_wrapper">
-               <button type="button" class="show-video-btn" id="show_video_btn" style="display: none;"
-                  title="Watch Music Video in Loop">
-                  <i class="fa-solid fa-play"></i> <span id="show_video_btn_text">Show Video</span>
-               </button>
             </div>
 
             <div class="lyrics-art-wrapper" id="lyrics_art_wrapper">
@@ -396,9 +396,19 @@
                   <button id="lyrics_fav_btn" class="lyrics-fav-action-btn" title="Add to Favorites">
                      <i class="fa fa-heart-o"></i> <span>Favorite</span>
                   </button>
+                  <button id="mobile_lyrics_toggle_btn" class="lyrics-fav-action-btn lyrics-mobile-toggle-btn" title="View Synced Lyrics">
+                     <i class="fa-solid fa-quote-right"></i> <span id="mobile_lyrics_toggle_text">Lyrics</span>
+                  </button>
+                  <!-- Single Cycling Video Toggle Button (Show Video -> Full Screen -> Cover) -->
+                  <button type="button" id="lyrics_video_toggle_btn" class="lyrics-fav-action-btn lyrics-video-cycle-btn" title="Show Music Video">
+                     <i class="fa-solid fa-video"></i> <span id="lyrics_video_toggle_text">Video</span>
+                  </button>
                   <button id="lyrics_audio_fx_btn" class="lyrics-fav-action-btn lyrics-fx-btn"
                      title="Equalizer & 3D Spatial Audio">
                      <i class="fa-solid fa-sliders"></i> <span>EQ & 3D</span>
+                  </button>
+                  <button id="lyrics_queue_btn" class="lyrics-fav-action-btn lyrics-queue-btn" title="Current Playlist / Queue">
+                     <i class="fa-solid fa-list-ul"></i> <span>Queue</span>
                   </button>
                   <div class="lyrics-live-badge" id="visualizer_toggle"><i class="fa-brands fa-soundcloud"></i>
                      <span>Visualizer</span>
@@ -472,6 +482,50 @@
          </div>
          <div id="modal_lyrics_container" class="lyrics-modal-scroll">
             <div class="no-lyrics-placeholder"><i class="fa fa-music"></i> Loading lyrics...</div>
+         </div>
+      </div>
+   </div>
+
+   <!-- Fullscreen Music Video Overlay with Landscape Mobile Rotation -->
+   <div id="fullscreen_video_overlay" class="fullscreen-video-overlay" style="display: none;" role="dialog" aria-modal="true" aria-label="Music Video Full Screen">
+      <div class="fullscreen-video-container" id="fullscreen_video_container">
+         <div id="fullscreen_video_embed" class="fullscreen-video-embed"></div>
+         <div class="fullscreen-video-topbar">
+            <div class="fullscreen-video-title-wrap">
+               <span class="fullscreen-video-live-badge"><i class="fa-solid fa-circle-play"></i> MUSIC VIDEO</span>
+               <h4 id="fullscreen_video_title">Music Video</h4>
+            </div>
+            <div class="fullscreen-video-actions">
+               <button type="button" id="video_rotate_landscape_btn" class="video-overlay-btn video-rotate-btn" title="Toggle Landscape Rotation (Mobile)">
+                  <i class="fa-solid fa-rotate"></i> <span>Rotate</span>
+               </button>
+               <button type="button" id="close_fullscreen_video_btn" class="video-overlay-btn video-exit-btn" title="Exit Full Screen (Esc)">
+                  <i class="fa-solid fa-compress"></i> <span>Exit</span>
+               </button>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <!-- Current Playlist / Queue Modal -->
+   <div id="current_playlist_modal" class="modal-overlay current-playlist-modal-overlay" role="dialog" aria-modal="true" aria-label="Current Playlist Queue">
+      <div class="modal-card current-playlist-modal-card">
+         <div class="modal-header current-playlist-header">
+            <div class="playlist-header-title-box">
+               <div class="queue-icon-circle"><i class="fa-solid fa-list-ul"></i></div>
+               <div>
+                  <h3>Current Queue</h3>
+                  <p id="queue_subtitle_count">0 songs in queue</p>
+               </div>
+            </div>
+            <div class="playlist-header-actions">
+               <button id="queue_shuffle_btn" class="queue-tool-btn" title="Shuffle Current Queue"><i class="fa fa-random"></i> Shuffle</button>
+               <button id="queue_clear_btn" class="queue-tool-btn queue-clear-btn" title="Clear Queue"><i class="fa fa-trash-o"></i> Clear</button>
+               <button id="close_current_playlist_modal" class="close-modal-btn" title="Close Queue"><i class="fa fa-times"></i></button>
+            </div>
+         </div>
+         <div class="current-playlist-body" id="current_playlist_body">
+            <div id="current_playlist_list" class="current-playlist-list"></div>
          </div>
       </div>
    </div>
@@ -637,8 +691,111 @@
       </div>
    </div>
 
-   <!-- Floating AI DJ Chat Widget Launcher -->
-   <button id="floating_chat_btn" class="floating-chat-btn" title="Chat with Sangeetham AI">
+   <!-- Modern Sangeetham AI Spotlight Command Palette Overlay -->
+   <div id="ai_spotlight_overlay" class="ai-spotlight-overlay" role="dialog" aria-modal="true"
+      aria-label="Sangeetham AI Spotlight Search">
+      <div class="ai-spotlight-card">
+         <!-- Spotlight Search & Prompt Header -->
+         <div class="ai-spotlight-header">
+            <div class="spotlight-ai-badge" title="Sangeetham AI Spotlight">
+               <i class="fa-solid fa-wand-magic-sparkles"></i>
+               <span class="spotlight-badge-pulse"></span>
+            </div>
+            <input type="text" id="ai_spotlight_input" class="ai-spotlight-input"
+               placeholder="Ask AI DJ: 'Play Kesariya', 'Late night lo-fi', 'Workout pump', 'Pause'..."
+               autocomplete="off" spellcheck="false">
+            <div class="spotlight-input-actions">
+               <button id="ai_spotlight_mic" class="spotlight-action-btn spotlight-mic-btn"
+                  title="Voice Search (Speak)">
+                  <i class="fa fa-microphone"></i>
+               </button>
+               <button id="ai_spotlight_clear" class="spotlight-action-btn spotlight-clear-btn" title="Clear Query"
+                  style="display: none;">
+                  <i class="fa fa-times-circle"></i>
+               </button>
+               <kbd class="spotlight-esc-pill" id="ai_spotlight_close_badge" title="Press Esc to close">ESC</kbd>
+               <button id="ai_spotlight_close" class="spotlight-close-btn" title="Close Spotlight">
+                  <i class="fa fa-times"></i>
+               </button>
+            </div>
+         </div>
+
+         <!-- Quick Vibes & Smart Action Chips Bar -->
+         <div class="ai-spotlight-chips-container">
+            <div class="spotlight-chips-scroll" id="ai_spotlight_chips">
+               <button class="spotlight-chip" data-query="Play trending Hindi hits"><i class="fa-solid fa-fire"></i>
+                  Trending</button>
+               <button class="spotlight-chip" data-query="Deep focus instrumental lo-fi"><i
+                     class="fa-solid fa-headphones"></i> Chill Lo-Fi</button>
+               <button class="spotlight-chip" data-query="High energy workout pump songs"><i
+                     class="fa-solid fa-bolt"></i> Workout Pump</button>
+               <button class="spotlight-chip" data-query="Best romantic melodies"><i class="fa-solid fa-heart"></i>
+                  Romantic</button>
+               <button class="spotlight-chip" data-query="Late night acoustic vibes"><i class="fa-solid fa-moon"></i>
+                  Late Night</button>
+               <button class="spotlight-chip" data-query="A.R. Rahman Hits"><i class="fa-solid fa-music"></i> A.R.
+                  Rahman</button>
+               <button class="spotlight-chip spotlight-cmd-chip" data-query="skip"><i
+                     class="fa-solid fa-forward-step"></i> Next Song</button>
+               <button class="spotlight-chip spotlight-cmd-chip" data-query="lyrics"><i
+                     class="fa-solid fa-quote-right"></i> Show Lyrics</button>
+               <button class="spotlight-chip spotlight-cmd-chip" data-query="pause"><i class="fa-solid fa-pause"></i>
+                  Pause</button>
+            </div>
+         </div>
+
+         <!-- AI Live Status Banner (Displays instant AI action feedback) -->
+         <div id="ai_spotlight_status" class="ai-spotlight-status" style="display: none;">
+            <div class="spotlight-status-icon">
+               <div class="spotlight-mini-waves">
+                  <span></span><span></span><span></span><span></span>
+               </div>
+            </div>
+            <div id="ai_spotlight_status_text" class="spotlight-status-text"></div>
+         </div>
+
+         <!-- Spotlight Main Results & Recommendation List -->
+         <div class="ai-spotlight-body" id="ai_spotlight_body">
+            <!-- Loading Indicator -->
+            <div id="ai_spotlight_loading" class="spotlight-loading" style="display: none;">
+               <div class="spotlight-ai-spinner"></div>
+               <span>Sangeetham AI is curating recommendations...</span>
+            </div>
+
+            <!-- Spotlight Results List -->
+            <div id="ai_spotlight_results" class="spotlight-results-list"></div>
+
+            <!-- Default Empty / Welcome State -->
+            <div id="ai_spotlight_empty" class="spotlight-empty-state">
+               <div class="spotlight-empty-icon">
+                  <i class="fa-solid fa-brain"></i>
+               </div>
+               <h3>What would you like to hear?</h3>
+               <p>Ask for moods, artists, genres, player controls (e.g. <em>"Play Kesariya"</em>, <em>"Telugu
+                     party"</em>, <em>"Skip song"</em>), or tap any quick vibe above.</p>
+            </div>
+         </div>
+
+         <!-- Spotlight Keyboard Hints Footer -->
+         <div class="ai-spotlight-footer">
+            <div class="spotlight-footer-hint">
+               <span class="spotlight-kbd-tag">↑</span><span class="spotlight-kbd-tag">↓</span> Navigate
+               <span class="spotlight-footer-dot">•</span>
+               <span class="spotlight-kbd-tag">↵</span> Play
+               <span class="spotlight-footer-dot">•</span>
+               <span class="spotlight-kbd-tag">ESC</span> Close
+               <span class="spotlight-footer-dot">•</span>
+               <span class="spotlight-kbd-tag">⌘K</span> / <span class="spotlight-kbd-tag">Ctrl+K</span>
+            </div>
+            <div class="spotlight-footer-brand">
+               <i class="fa-solid fa-sparkles"></i> Sangeetham AI
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <!-- Floating AI DJ Widget Launcher -->
+   <button id="floating_chat_btn" class="floating-chat-btn" title="Sangeetham AI Spotlight (Cmd+K)">
       <i class="fa-solid fa-music"></i>
 
       <span class="floating-pulse-ring"></span>
@@ -1060,6 +1217,11 @@
          <button id="playpausebtn" class="play" title="Play/Pause"><i class="fa fa-play"></i><i
                class="fa fa-pause"></i></button>
          <button id="next-s" title="Next Track"><i class="fa fa-angle-right"></i></button>
+
+         <button id="current_queue_btn" class="glow-btn current-queue-btn" title="Current Playlist / Queue">
+            <i class="fa-solid fa-list-ul"></i>
+            <span class="queue-badge-count" id="queue_badge_count" style="display: none;">0</span>
+         </button>
 
          <button id="audio_fx_btn" class="glow-btn audio-fx-btn" title="Equalizer & 3D Spatial Audio">
             <i class="fa-solid fa-sliders"></i>

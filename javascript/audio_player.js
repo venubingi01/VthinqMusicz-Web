@@ -494,6 +494,7 @@ var playlist = [];
 var playlist_index = 0;
 
 var audio = new Audio();
+window.audio = audio;
 audio.crossOrigin = "anonymous"; // Required: makes browser send Origin header so CDN returns CORS headers,
 // allowing Web Audio API (visualizer) to read stream data.
 // Without this, MediaElementAudioSource outputs zeroes.
@@ -2258,6 +2259,13 @@ function updateAllActiveCards() {
 	if (typeof FavoritesManager !== "undefined") {
 		FavoritesManager.updateAllUI();
 	}
+	if (typeof updateQueueBadge === "function") {
+		updateQueueBadge();
+	}
+	var queueModal = document.getElementById("current_playlist_modal");
+	if (queueModal && queueModal.classList.contains("active") && typeof renderCurrentPlaylistModal === "function") {
+		renderCurrentPlaylistModal();
+	}
 }
 
 function createSongListItem(songItem, idx, songsList) {
@@ -2498,6 +2506,13 @@ async function loadLyricsForCurrentSong(forceReload) {
 	if (modalCover) modalCover.src = song.cover;
 	if (artGlow && song.cover) {
 		artGlow.style.backgroundImage = "url('" + song.cover + "')";
+	}
+	var embedContainer = document.getElementById("lyrics_video_embed_container");
+	if (embedContainer && song.cover) {
+		embedContainer.style.backgroundImage = "url('" + song.cover + "')";
+		embedContainer.style.backgroundSize = "cover";
+		embedContainer.style.backgroundPosition = "center center";
+		embedContainer.style.backgroundRepeat = "no-repeat";
 	}
 
 	var lyricsTitle = document.getElementById("lyrics_title");
@@ -3040,13 +3055,10 @@ function switchTab(tabName, skipHashUpdate) {
 	} else if (tabName === "album") {
 		if (albumView) albumView.classList.add("active");
 	} else if (tabName === "ai_chat") {
-		if (chatView) {
-			chatView.classList.add("active");
-			var chatInput = document.getElementById("chat_input");
-			if (chatInput) {
-				setTimeout(function () { chatInput.focus(); }, 150);
-			}
+		if (typeof openAISpotlight === "function") {
+			openAISpotlight();
 		}
+		if (homeView) homeView.classList.add("active");
 		if (!skipHashUpdate) updateUrlHash("ai_chat");
 	} else {
 		if (searchView) searchView.classList.add("active");
@@ -3163,6 +3175,58 @@ function initAudioPlayer() {
 			switchTab("home");
 		});
 	}
+
+	// Current Playlist / Queue Modal Triggers
+	var queueBtn = document.getElementById("current_queue_btn");
+	var lyricsQueueBtn = document.getElementById("lyrics_queue_btn");
+	var closeQueueBtn = document.getElementById("close_current_playlist_modal");
+	var queueClearBtn = document.getElementById("queue_clear_btn");
+	var queueShuffleBtn = document.getElementById("queue_shuffle_btn");
+	var queueModal = document.getElementById("current_playlist_modal");
+
+	if (queueBtn) {
+		queueBtn.addEventListener("click", function (e) {
+			e.stopPropagation();
+			openCurrentPlaylistModal();
+		});
+	}
+
+	if (lyricsQueueBtn) {
+		lyricsQueueBtn.addEventListener("click", function (e) {
+			e.stopPropagation();
+			openCurrentPlaylistModal();
+		});
+	}
+
+	if (closeQueueBtn) {
+		closeQueueBtn.addEventListener("click", function () {
+			closeCurrentPlaylistModal();
+		});
+	}
+
+	if (queueModal) {
+		queueModal.addEventListener("click", function (e) {
+			if (e.target === queueModal) {
+				closeCurrentPlaylistModal();
+			}
+		});
+	}
+
+	if (queueClearBtn) {
+		queueClearBtn.addEventListener("click", function () {
+			clearCurrentQueue();
+		});
+	}
+
+	if (queueShuffleBtn) {
+		queueShuffleBtn.addEventListener("click", function () {
+			shuffleCurrentQueue();
+		});
+	}
+
+	// Initialize Mobile Lyrics Toggle and Queue Badge Counter
+	initMobileLyricsToggle();
+	updateQueueBadge();
 
 	// Controls
 	var styleSelect = document.getElementById("style_select");
@@ -3697,12 +3761,21 @@ function initAudioPlayer() {
 	});
 	audio.addEventListener("play", function () {
 		setPlayerLyricPlayingState(true);
+		if (window.RealVideoLooper && typeof window.RealVideoLooper.resumeVideo === "function") {
+			window.RealVideoLooper.resumeVideo();
+		}
 	});
 	audio.addEventListener("pause", function () {
 		setPlayerLyricPlayingState(false);
+		if (window.RealVideoLooper && typeof window.RealVideoLooper.pauseVideo === "function") {
+			window.RealVideoLooper.pauseVideo();
+		}
 	});
 	audio.addEventListener("ended", function () {
 		setPlayerLyricPlayingState(false);
+		if (window.RealVideoLooper && typeof window.RealVideoLooper.pauseVideo === "function") {
+			window.RealVideoLooper.pauseVideo();
+		}
 		switchTrack();
 	});
 
@@ -4682,6 +4755,232 @@ function playDirectSong(song) {
 		playTrackAtIndex(0);
 	}
 	showToast("▶ Playing: " + song.title);
+}
+
+/* ==========================================================================
+   Current Playlist / Queue Management
+   ========================================================================== */
+function updateQueueBadge() {
+	var badge = document.getElementById("queue_badge_count");
+	if (!badge) return;
+	var count = (typeof playlist !== "undefined" && playlist) ? playlist.length : 0;
+	if (count > 0) {
+		badge.textContent = count;
+		badge.style.display = "block";
+	} else {
+		badge.style.display = "none";
+	}
+}
+
+function openCurrentPlaylistModal() {
+	var modal = document.getElementById("current_playlist_modal");
+	if (!modal) return;
+	renderCurrentPlaylistModal();
+	modal.classList.add("active");
+}
+
+function closeCurrentPlaylistModal() {
+	var modal = document.getElementById("current_playlist_modal");
+	if (modal) modal.classList.remove("active");
+}
+
+function renderCurrentPlaylistModal() {
+	var listContainer = document.getElementById("current_playlist_list");
+	var countSubtitle = document.getElementById("queue_subtitle_count");
+	if (!listContainer) return;
+
+	listContainer.innerHTML = "";
+	var total = (typeof playlist !== "undefined" && playlist) ? playlist.length : 0;
+
+	if (countSubtitle) {
+		countSubtitle.textContent = total + (total === 1 ? " track in queue" : " tracks in queue");
+	}
+
+	if (!playlist || playlist.length === 0) {
+		listContainer.innerHTML = `
+			<div style="text-align:center;padding:40px 16px;color:rgba(255,255,255,0.5);">
+				<i class="fa-solid fa-list-ul" style="font-size:36px;color:#ff2d49;margin-bottom:12px;display:block;"></i>
+				<p>Your queue is currently empty. Play songs or ask AI DJ to queue tracks!</p>
+			</div>
+		`;
+		return;
+	}
+
+	playlist.forEach(function (song, idx) {
+		var isPlaying = (idx === playlist_index);
+		var item = document.createElement("div");
+		item.className = "queue-item" + (isPlaying ? " is-playing" : "");
+
+		var coverUrl = song.cover || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80";
+
+		item.innerHTML = `
+			<div class="queue-item-main">
+				<span class="queue-track-idx">${idx + 1 < 10 ? '0' : ''}${idx + 1}</span>
+				<div class="queue-now-playing-wave">
+					<span></span><span></span><span></span>
+				</div>
+				<img src="${coverUrl}" alt="${song.title}" class="queue-thumb" loading="lazy">
+				<div class="queue-meta">
+					<div class="queue-title">${song.title}</div>
+					<div class="queue-artist">${song.artist || 'Unknown'} • ${song.durationStr || '3:30'}</div>
+				</div>
+			</div>
+			<div class="queue-item-actions">
+				${isPlaying ? '<span class="queue-playing-badge">NOW PLAYING</span>' : ''}
+				<button type="button" class="queue-remove-btn" title="Remove from Queue">
+					<i class="fa fa-times"></i>
+				</button>
+			</div>
+		`;
+
+		// Click to play
+		item.addEventListener("click", function (e) {
+			if (e.target.closest(".queue-remove-btn")) return;
+			playTrackAtIndex(idx);
+			renderCurrentPlaylistModal();
+		});
+
+		// Remove from queue
+		var removeBtn = item.querySelector(".queue-remove-btn");
+		if (removeBtn) {
+			removeBtn.addEventListener("click", function (e) {
+				e.stopPropagation();
+				removeSongFromQueue(idx);
+			});
+		}
+
+		listContainer.appendChild(item);
+	});
+}
+
+function removeSongFromQueue(idx) {
+	if (!playlist || idx < 0 || idx >= playlist.length) return;
+	if (playlist.length <= 1) {
+		showToast("Cannot remove the only song currently playing");
+		return;
+	}
+
+	var removed = playlist.splice(idx, 1)[0];
+	if (idx < playlist_index) {
+		playlist_index--;
+	} else if (idx === playlist_index) {
+		if (playlist_index >= playlist.length) {
+			playlist_index = 0;
+		}
+		playTrackAtIndex(playlist_index);
+	}
+
+	renderSongsList(playlist);
+	renderCurrentPlaylistModal();
+	updateQueueBadge();
+	if (removed) {
+		showToast("Removed: " + removed.title);
+	}
+}
+
+function clearCurrentQueue() {
+	if (!playlist || playlist.length <= 1) {
+		showToast("Queue is already empty except playing song");
+		return;
+	}
+	var current = playlist[playlist_index];
+	playlist = [current];
+	playlist_index = 0;
+	renderSongsList(playlist);
+	renderCurrentPlaylistModal();
+	updateQueueBadge();
+	showToast("Cleared queue (kept current track)");
+}
+
+function shuffleCurrentQueue() {
+	if (!playlist || playlist.length <= 2) {
+		showToast("Add more songs to queue to shuffle");
+		return;
+	}
+	var current = playlist[playlist_index];
+	var remaining = playlist.filter(function (_, i) { return i !== playlist_index; });
+
+	for (var i = remaining.length - 1; i > 0; i--) {
+		var j = Math.floor(Math.random() * (i + 1));
+		var temp = remaining[i];
+		remaining[i] = remaining[j];
+		remaining[j] = temp;
+	}
+
+	playlist = [current].concat(remaining);
+	playlist_index = 0;
+	renderSongsList(playlist);
+	renderCurrentPlaylistModal();
+	showToast("🔀 Queue shuffled");
+}
+
+/* ==========================================================================
+   Mobile Lyrics Toggle Feature on Lyrics Page
+   ========================================================================== */
+function setMobileLyricsMode(showLyrics) {
+	var lyricsView = document.getElementById("lyrics_view");
+	var coverSeg = document.getElementById("mobile_seg_cover_btn");
+	var lyricsSeg = document.getElementById("mobile_seg_lyrics_btn");
+	var toggleBtn = document.getElementById("mobile_lyrics_toggle_btn");
+	var toggleText = document.getElementById("mobile_lyrics_toggle_text");
+
+	if (!lyricsView) return;
+
+	if (showLyrics) {
+		lyricsView.classList.add("mobile-lyrics-mode-active");
+		if (coverSeg) coverSeg.classList.remove("active");
+		if (lyricsSeg) lyricsSeg.classList.add("active");
+		if (toggleText) toggleText.textContent = "Cover";
+		if (toggleBtn) {
+			var icon = toggleBtn.querySelector("i");
+			if (icon) icon.className = "fa-solid fa-image";
+			toggleBtn.classList.add("active");
+		}
+		// Center the current active lyric line smoothly
+		setTimeout(function () {
+			var activeLine = document.querySelector("#lyrics_container .lyric-line.active");
+			if (activeLine) {
+				activeLine.scrollIntoView({ behavior: "smooth", block: "center" });
+			}
+		}, 120);
+	} else {
+		lyricsView.classList.remove("mobile-lyrics-mode-active");
+		if (coverSeg) coverSeg.classList.add("active");
+		if (lyricsSeg) lyricsSeg.classList.remove("active");
+		if (toggleText) toggleText.textContent = "Lyrics";
+		if (toggleBtn) {
+			var icon2 = toggleBtn.querySelector("i");
+			if (icon2) icon2.className = "fa-solid fa-quote-right";
+			toggleBtn.classList.remove("active");
+		}
+	}
+}
+
+function initMobileLyricsToggle() {
+	var toggleBtn = document.getElementById("mobile_lyrics_toggle_btn");
+	var coverSeg = document.getElementById("mobile_seg_cover_btn");
+	var lyricsSeg = document.getElementById("mobile_seg_lyrics_btn");
+	var lyricsView = document.getElementById("lyrics_view");
+
+	if (toggleBtn) {
+		toggleBtn.addEventListener("click", function (e) {
+			e.preventDefault();
+			var isLyricsActive = lyricsView && lyricsView.classList.contains("mobile-lyrics-mode-active");
+			setMobileLyricsMode(!isLyricsActive);
+		});
+	}
+
+	if (coverSeg) {
+		coverSeg.addEventListener("click", function () {
+			setMobileLyricsMode(false);
+		});
+	}
+
+	if (lyricsSeg) {
+		lyricsSeg.addEventListener("click", function () {
+			setMobileLyricsMode(true);
+		});
+	}
 }
 
 function initVoiceSearch(triggerSearchFn) {

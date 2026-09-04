@@ -1,31 +1,122 @@
-// Sangeetham AI DJ Chat Box Engine
-// Provides natural language music recommendations, playlist creation, voice chat, and player controls
+// Sangeetham AI Spotlight Engine
+// Transforms AI interactions into a fast, modern Apple Spotlight / Command Palette UI
+// Supports natural-language music queries, direct playback, recommendations, voice input, and player controls
 
-function initAIChatBot() {
-	var floatingChatBtn = document.getElementById("floating_chat_btn");
-	var chatInput = document.getElementById("chat_input");
-	var sendChatBtn = document.getElementById("send_chat_btn");
-	var clearChatBtn = document.getElementById("clear_chat_btn");
-	var chatVoiceBtn = document.getElementById("chat_voice_btn");
-	var chatMessages = document.getElementById("chat_messages_container");
+(function () {
+	var spotlightOverlay = null;
+	var spotlightInput = null;
+	var spotlightClear = null;
+	var spotlightClose = null;
+	var spotlightCloseBadge = null;
+	var spotlightMic = null;
+	var spotlightStatus = null;
+	var spotlightStatusText = null;
+	var spotlightLoading = null;
+	var spotlightResults = null;
+	var spotlightEmpty = null;
+	var floatingChatBtn = null;
 
-	var closeChatBtn = document.getElementById("close_chat_btn");
-	closeChatBtn.addEventListener("click", function () {
-		var chatView = document.getElementById("chat_view");
-		chatView.classList.remove("active");
-		//swith to previous view
-		switchTab("home");
-	});
+	var currentResults = [];
+	var selectedIndex = -1;
+	var isProcessing = false;
+	var searchDebounceTimer = null;
+	var speechRecognition = null;
+	var isListening = false;
 
-	// Free Drag & Drop Controller for Floating AI Chat Button across Entire Screen
-	if (floatingChatBtn) {
+	function initAISpotlight() {
+		spotlightOverlay = document.getElementById("ai_spotlight_overlay");
+		spotlightInput = document.getElementById("ai_spotlight_input");
+		spotlightClear = document.getElementById("ai_spotlight_clear");
+		spotlightClose = document.getElementById("ai_spotlight_close");
+		spotlightCloseBadge = document.getElementById("ai_spotlight_close_badge");
+		spotlightMic = document.getElementById("ai_spotlight_mic");
+		spotlightStatus = document.getElementById("ai_spotlight_status");
+		spotlightStatusText = document.getElementById("ai_spotlight_status_text");
+		spotlightLoading = document.getElementById("ai_spotlight_loading");
+		spotlightResults = document.getElementById("ai_spotlight_results");
+		spotlightEmpty = document.getElementById("ai_spotlight_empty");
+		floatingChatBtn = document.getElementById("floating_chat_btn");
+
+		setupFloatingButtonDrag();
+		setupKeyboardShortcuts();
+		setupInputEvents();
+		setupVoiceRecognition();
+		setupChipsEvents();
+		setupCloseEvents();
+	}
+
+	// --------------------------------------------------------------------------
+	// Open / Close / Toggle Spotlight
+	// --------------------------------------------------------------------------
+	function openAISpotlight(initialQuery) {
+		if (!spotlightOverlay) {
+			spotlightOverlay = document.getElementById("ai_spotlight_overlay");
+			spotlightInput = document.getElementById("ai_spotlight_input");
+		}
+		if (!spotlightOverlay) return;
+		spotlightOverlay.classList.add("active");
+
+		if (spotlightInput) {
+			if (initialQuery) {
+				spotlightInput.value = initialQuery;
+				executeAIQuery(initialQuery);
+			}
+			setTimeout(function () {
+				try {
+					spotlightInput.focus();
+				} catch (e) { }
+			}, 60);
+		}
+		updateClearButtonVisibility();
+	}
+
+	function closeAISpotlight() {
+		if (!spotlightOverlay) {
+			spotlightOverlay = document.getElementById("ai_spotlight_overlay");
+		}
+		if (!spotlightOverlay) return;
+		spotlightOverlay.classList.remove("active");
+		stopVoiceRecognition();
+		selectedIndex = -1;
+	}
+
+	function toggleAISpotlight() {
+		if (!spotlightOverlay) {
+			spotlightOverlay = document.getElementById("ai_spotlight_overlay");
+		}
+		if (spotlightOverlay && spotlightOverlay.classList.contains("active")) {
+			closeAISpotlight();
+		} else {
+			openAISpotlight();
+		}
+	}
+
+	// Expose globally
+	window.openAISpotlight = openAISpotlight;
+	window.closeAISpotlight = closeAISpotlight;
+	window.toggleAISpotlight = toggleAISpotlight;
+
+	// --------------------------------------------------------------------------
+	// Floating Chat Button Dragging & Click Handling
+	// --------------------------------------------------------------------------
+	function setupFloatingButtonDrag() {
+		if (!floatingChatBtn) return;
+
 		var isDragging = false;
 		var hasMoved = false;
 		var startX = 0;
 		var startY = 0;
 		var initialBtnLeft = 0;
 		var initialBtnTop = 0;
-		var dragThreshold = 6;
+		var dragThreshold = 15; // Raised threshold prevents natural finger tap jitter from registering as drag
+		var lastActivateTime = 0;
+
+		function handleActivate(e) {
+			var now = Date.now();
+			if (now - lastActivateTime < 350) return; // Prevent double-trigger from touchend + click
+			lastActivateTime = now;
+			toggleAISpotlight();
+		}
 
 		function getClientCoords(e) {
 			if (e.touches && e.touches.length > 0) {
@@ -46,13 +137,7 @@ function initAIChatBot() {
 			startY = coords.y;
 			initialBtnLeft = rect.left;
 			initialBtnTop = rect.top;
-
-			// Switch to absolute left/top positioning relative to viewport
-			floatingChatBtn.style.right = "auto";
-			floatingChatBtn.style.bottom = "auto";
-			floatingChatBtn.style.left = initialBtnLeft + "px";
-			floatingChatBtn.style.top = initialBtnTop + "px";
-			floatingChatBtn.classList.add("is-dragging");
+			// Note: Do not mutate position or add .is-dragging class until dragThreshold is exceeded
 		}
 
 		function onDragMove(e) {
@@ -61,8 +146,13 @@ function initAIChatBot() {
 			var dx = coords.x - startX;
 			var dy = coords.y - startY;
 
-			if (Math.abs(dx) > dragThreshold || Math.abs(dy) > dragThreshold) {
+			if (!hasMoved && (Math.abs(dx) > dragThreshold || Math.abs(dy) > dragThreshold)) {
 				hasMoved = true;
+				floatingChatBtn.style.right = "auto";
+				floatingChatBtn.style.bottom = "auto";
+				floatingChatBtn.style.left = initialBtnLeft + "px";
+				floatingChatBtn.style.top = initialBtnTop + "px";
+				floatingChatBtn.classList.add("is-dragging");
 			}
 
 			if (hasMoved) {
@@ -79,34 +169,42 @@ function initAIChatBot() {
 			}
 		}
 
-		function endDrag() {
+		function endDrag(e) {
 			if (!isDragging) return;
 			isDragging = false;
 			floatingChatBtn.classList.remove("is-dragging");
 
 			if (!hasMoved) {
-				// Clean tap or click without drag - toggle between AI Chat and Home
-				var chatView = document.getElementById("chat_view");
-				var isChatActive = (chatView && chatView.classList.contains("active")) || (typeof activeTab !== "undefined" && activeTab === "ai_chat");
-
-				if (typeof switchTab === "function") {
-					switchTab("ai_chat");
-				}
+				// Clean tap without dragging - open AI Spotlight
+				handleActivate(e);
 			}
+
+			// Clear hasMoved flag after a short delay so click event doesn't get confused
+			setTimeout(function () {
+				hasMoved = false;
+			}, 300);
 		}
 
-		// Mouse drag listeners
+		// Direct Click Event (Desktop click and Mobile fallback click)
+		floatingChatBtn.addEventListener("click", function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+			if (hasMoved) return;
+			handleActivate(e);
+		});
+
+		// Mouse events
 		floatingChatBtn.addEventListener("mousedown", startDrag);
 		window.addEventListener("mousemove", onDragMove);
 		window.addEventListener("mouseup", endDrag);
 
-		// Touch drag listeners
-		floatingChatBtn.addEventListener("touchstart", startDrag, { passive: false });
+		// Touch events (Mobile)
+		floatingChatBtn.addEventListener("touchstart", startDrag, { passive: true });
 		window.addEventListener("touchmove", onDragMove, { passive: false });
-		window.addEventListener("touchend", endDrag);
-		window.addEventListener("touchcancel", endDrag);
+		window.addEventListener("touchend", endDrag, { passive: true });
+		window.addEventListener("touchcancel", endDrag, { passive: true });
 
-		// Re-clamp position on window resize or device orientation change
+		// Window resize reposition
 		window.addEventListener("resize", function () {
 			if (floatingChatBtn.style.left && floatingChatBtn.style.top) {
 				var btnWidth = floatingChatBtn.offsetWidth || 50;
@@ -122,199 +220,359 @@ function initAIChatBot() {
 		});
 	}
 
-	function appendMessage(sender, text, songResults, suggestions) {
-		if (!chatMessages) return;
-		var msgDiv = document.createElement("div");
-		msgDiv.className = "chat-message " + (sender === "user" ? "user-message" : "bot-message");
+	// --------------------------------------------------------------------------
+	// Global Keyboard Shortcuts (Cmd+K, Ctrl+K, Escape, Arrow Navigation)
+	// --------------------------------------------------------------------------
+	function setupKeyboardShortcuts() {
+		window.addEventListener("keydown", function (e) {
+			// Cmd+K (Mac) or Ctrl+K (Windows/Linux) to toggle spotlight
+			if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+				e.preventDefault();
+				toggleAISpotlight();
+				return;
+			}
 
-		var avatarDiv = document.createElement("div");
-		avatarDiv.className = "message-avatar" + (sender === "user" ? " user-avatar" : "");
-		avatarDiv.innerHTML = sender === "user" ? '<i class="fa fa-user"></i>' : '<i class="fa fa-magic"></i>';
+			// Escape to close spotlight
+			if (e.key === "Escape" && spotlightOverlay && spotlightOverlay.classList.contains("active")) {
+				e.preventDefault();
+				closeAISpotlight();
+				return;
+			}
+		});
+	}
 
-		var bodyDiv = document.createElement("div");
-		bodyDiv.className = "message-body";
+	// --------------------------------------------------------------------------
+	// Input & Arrow Navigation Handling
+	// --------------------------------------------------------------------------
+	function setupInputEvents() {
+		if (!spotlightInput) return;
 
-		var bubbleDiv = document.createElement("div");
-		bubbleDiv.className = "message-bubble";
-		bubbleDiv.innerHTML = text;
-		bodyDiv.appendChild(bubbleDiv);
+		spotlightInput.addEventListener("input", function () {
+			updateClearButtonVisibility();
+			var val = this.value.trim();
 
-		// Render interactive song recommendation cards
-		if (songResults && songResults.length > 0) {
-			var songsListDiv = document.createElement("div");
-			songsListDiv.className = "chat-song-cards-list";
+			if (!val) {
+				showEmptyState();
+				hideStatus();
+				return;
+			}
 
-			songResults.forEach(function (song) {
-				var card = document.createElement("div");
-				card.className = "chat-song-card";
-				var isFav = (typeof FavoritesManager !== "undefined") && FavoritesManager.isFavorite(song);
-				var favIcon = isFav ? "fa fa-heart" : "fa fa-heart-o";
-				var favActive = isFav ? " active" : "";
+			// Debounced live AI search for fluid experience
+			clearTimeout(searchDebounceTimer);
+			searchDebounceTimer = setTimeout(function () {
+				if (spotlightInput && spotlightInput.value.trim().length >= 2) {
+					executeAIQuery(spotlightInput.value.trim(), { isLive: true });
+				}
+			}, 360);
+		});
 
-				card.innerHTML = `
-					<div class="chat-song-info-group">
-						<img class="chat-song-thumb" src="${song.cover || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80'}" alt="${song.title}">
-						<div class="chat-song-text">
-							<div class="chat-song-title">${song.title}</div>
-							<div class="chat-song-artist">${song.artist} • ${song.durationStr || '3:30'}</div>
-						</div>
-					</div>
-					<div style="display:flex;align-items:center;gap:4px;">
-						<button class="chat-fav-song-btn${favActive}" data-fav-song-title="${song.title.replace(/"/g, '&quot;')}" data-fav-song-artist="${(song.artist || '').replace(/"/g, '&quot;')}" title="${isFav ? 'Remove from Favorites' : 'Add to Favorites'}"><i class="${favIcon}"></i></button>
-						<button class="chat-play-song-btn" title="Play Now"><i class="fa fa-play"></i> Play</button>
-					</div>
-				`;
+		spotlightInput.addEventListener("keydown", function (e) {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				clearTimeout(searchDebounceTimer);
 
-				var favBtn = card.querySelector(".chat-fav-song-btn");
-				if (favBtn) {
-					favBtn.onclick = function (e) {
-						e.stopPropagation();
-						if (typeof FavoritesManager !== "undefined") {
-							FavoritesManager.toggleFavorite(song);
-						}
-					};
+				// If an item is actively highlighted with arrow keys, play it
+				if (selectedIndex >= 0 && currentResults && currentResults[selectedIndex]) {
+					playSongDirectly(currentResults[selectedIndex]);
+					return;
 				}
 
-				var playBtn = card.querySelector(".chat-play-song-btn");
-				if (playBtn) {
-					playBtn.onclick = function (e) {
-						e.stopPropagation();
-						if (typeof playDirectSong === "function") {
-							playDirectSong(song);
-						}
-					};
+				// Otherwise execute full AI query
+				var val = this.value.trim();
+				if (val) {
+					executeAIQuery(val, { isLive: false });
 				}
+			} else if (e.key === "ArrowDown") {
+				e.preventDefault();
+				navigateResults(1);
+			} else if (e.key === "ArrowUp") {
+				e.preventDefault();
+				navigateResults(-1);
+			}
+		});
 
-				songsListDiv.appendChild(card);
+		if (spotlightClear) {
+			spotlightClear.addEventListener("click", function (e) {
+				e.preventDefault();
+				spotlightInput.value = "";
+				updateClearButtonVisibility();
+				showEmptyState();
+				hideStatus();
+				spotlightInput.focus();
 			});
+		}
+	}
 
-			bodyDiv.appendChild(songsListDiv);
+	function updateClearButtonVisibility() {
+		if (!spotlightClear || !spotlightInput) return;
+		spotlightClear.style.display = spotlightInput.value.length > 0 ? "flex" : "none";
+	}
+
+	function navigateResults(direction) {
+		if (!currentResults || currentResults.length === 0) return;
+		selectedIndex += direction;
+
+		if (selectedIndex >= currentResults.length) {
+			selectedIndex = 0;
+		} else if (selectedIndex < 0) {
+			selectedIndex = currentResults.length - 1;
 		}
 
-		// Render follow-up suggestions
-		if (suggestions && suggestions.length > 0) {
-			var suggDiv = document.createElement("div");
-			suggDiv.className = "chat-quick-suggestions";
-			suggestions.forEach(function (promptText) {
-				var chip = document.createElement("button");
-				chip.className = "chat-chip";
-				chip.setAttribute("data-prompt", promptText);
-				chip.textContent = promptText;
-				suggDiv.appendChild(chip);
-			});
-			bodyDiv.appendChild(suggDiv);
+		updateSelectedResultUI();
+	}
+
+	function updateSelectedResultUI() {
+		if (!spotlightResults) return;
+		var items = spotlightResults.querySelectorAll(".spotlight-song-item");
+		items.forEach(function (item, idx) {
+			if (idx === selectedIndex) {
+				item.classList.add("selected");
+				item.scrollIntoView({ block: "nearest", behavior: "smooth" });
+			} else {
+				item.classList.remove("selected");
+			}
+		});
+	}
+
+	// --------------------------------------------------------------------------
+	// Close Handlers
+	// --------------------------------------------------------------------------
+	function setupCloseEvents() {
+		if (spotlightClose) {
+			spotlightClose.addEventListener("click", closeAISpotlight);
 		}
 
-		msgDiv.appendChild(avatarDiv);
-		msgDiv.appendChild(bodyDiv);
-		chatMessages.appendChild(msgDiv);
-		chatMessages.scrollTop = chatMessages.scrollHeight;
+		if (spotlightCloseBadge) {
+			spotlightCloseBadge.addEventListener("click", closeAISpotlight);
+		}
+
+		if (spotlightOverlay) {
+			spotlightOverlay.addEventListener("click", function (e) {
+				if (e.target === spotlightOverlay) {
+					closeAISpotlight();
+				}
+			});
+		}
 	}
 
-	function showTypingIndicator() {
-		if (!chatMessages) return null;
-		var typingDiv = document.createElement("div");
-		typingDiv.id = "ai_typing_indicator";
-		typingDiv.className = "chat-message bot-message";
-		typingDiv.innerHTML = `
-			<div class="message-avatar"><i class="fa fa-magic"></i></div>
-			<div class="message-body">
-				<div class="message-bubble" style="padding: 8px 14px;">
-					<div class="typing-indicator"><span></span><span></span><span></span></div>
-				</div>
-			</div>
-		`;
-		chatMessages.appendChild(typingDiv);
-		chatMessages.scrollTop = chatMessages.scrollHeight;
-		return typingDiv;
+	// --------------------------------------------------------------------------
+	// Quick Vibe Chips Handling
+	// --------------------------------------------------------------------------
+	function setupChipsEvents() {
+		document.addEventListener("click", function (e) {
+			var chip = e.target.closest(".spotlight-chip");
+			if (chip) {
+				e.preventDefault();
+				var query = chip.getAttribute("data-query");
+				if (query) {
+					if (spotlightInput) {
+						spotlightInput.value = query;
+						updateClearButtonVisibility();
+					}
+					executeAIQuery(query, { isLive: false });
+				}
+			}
+		});
 	}
 
-	function removeTypingIndicator() {
-		var el = document.getElementById("ai_typing_indicator");
-		if (el) el.remove();
+	// --------------------------------------------------------------------------
+	// Voice Input (Speech Recognition)
+	// --------------------------------------------------------------------------
+	function setupVoiceRecognition() {
+		var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+		if (!SpeechRecognition || !spotlightMic) return;
+
+		try {
+			speechRecognition = new SpeechRecognition();
+			speechRecognition.continuous = false;
+			speechRecognition.interimResults = false;
+			speechRecognition.lang = "en-IN";
+
+			speechRecognition.onstart = function () {
+				isListening = true;
+				if (spotlightMic) spotlightMic.classList.add("listening");
+				showStatus("🎤 Listening... Speak to Sangeetham AI", false);
+			};
+
+			speechRecognition.onresult = function (event) {
+				var transcript = event.results[0][0].transcript;
+				if (transcript && spotlightInput) {
+					spotlightInput.value = transcript;
+					updateClearButtonVisibility();
+					executeAIQuery(transcript, { isLive: false });
+				}
+			};
+
+			speechRecognition.onerror = function () {
+				stopVoiceRecognition();
+				showStatus("Could not recognize voice. Please try typing your query.", false);
+			};
+
+			speechRecognition.onend = function () {
+				stopVoiceRecognition();
+			};
+
+			spotlightMic.addEventListener("click", function (e) {
+				e.preventDefault();
+				if (isListening) {
+					stopVoiceRecognition();
+				} else {
+					try {
+						speechRecognition.start();
+					} catch (err) {
+						console.warn("Speech recognition start error:", err);
+					}
+				}
+			});
+		} catch (e) {
+			console.warn("SpeechRecognition init failed:", e);
+		}
 	}
 
-	var isChatProcessing = false;
+	function stopVoiceRecognition() {
+		isListening = false;
+		if (spotlightMic) spotlightMic.classList.remove("listening");
+		if (speechRecognition) {
+			try { speechRecognition.stop(); } catch (e) { }
+		}
+	}
 
-	async function handleUserPrompt(prompt) {
-		if (!prompt || !prompt.trim() || isChatProcessing) return;
-		isChatProcessing = true;
+	// --------------------------------------------------------------------------
+	// Status & Visualizer Helpers
+	// --------------------------------------------------------------------------
+	function showStatus(htmlMsg, isPlayback) {
+		if (!spotlightStatus || !spotlightStatusText) return;
+		spotlightStatusText.innerHTML = htmlMsg;
+		spotlightStatus.style.display = "flex";
+
+		var waves = spotlightStatus.querySelector(".spotlight-mini-waves");
+		if (waves) {
+			waves.style.display = isPlayback ? "flex" : "none";
+		}
+	}
+
+	function hideStatus() {
+		if (spotlightStatus) {
+			spotlightStatus.style.display = "none";
+		}
+	}
+
+	function showLoading(show) {
+		if (!spotlightLoading) return;
+		spotlightLoading.style.display = show ? "flex" : "none";
+	}
+
+	function showEmptyState() {
+		if (spotlightResults) spotlightResults.innerHTML = "";
+		if (spotlightEmpty) spotlightEmpty.style.display = "block";
+		currentResults = [];
+		selectedIndex = -1;
+	}
+
+	function hideEmptyState() {
+		if (spotlightEmpty) spotlightEmpty.style.display = "none";
+	}
+
+	// --------------------------------------------------------------------------
+	// AI Query Processing Engine
+	// --------------------------------------------------------------------------
+	async function executeAIQuery(prompt, options) {
+		if (!prompt || !prompt.trim()) return;
 		var cleanPrompt = prompt.trim();
-		appendMessage("user", cleanPrompt);
-
-		if (chatInput) chatInput.value = "";
-
-		showTypingIndicator();
-
 		var lower = cleanPrompt.toLowerCase();
+		var isLive = options && options.isLive;
 
-		// Playback control commands
+		// 1. Playback Control Commands (Immediate Execution)
 		if (lower === "pause" || lower === "stop" || lower.includes("pause music")) {
-			setTimeout(function () {
-				removeTypingIndicator();
-				isChatProcessing = false;
-				if (typeof audio !== "undefined" && audio) {
-					audio.pause();
-				}
-				var playbtn = document.getElementById("playpausebtn");
-				if (playbtn) playbtn.className = "play";
-				if (typeof setPlayerLyricPlayingState === "function") {
-					setPlayerLyricPlayingState(false);
-				}
-				appendMessage("bot", "⏸ Music paused! Let me know when you'd like to resume or find another groove.", null, ["Resume music", "Play trending songs", "Chill acoustic"]);
-			}, 350);
+			if (typeof audio !== "undefined" && audio) {
+				audio.pause();
+			}
+			var playbtn = document.getElementById("playpausebtn");
+			if (playbtn) playbtn.className = "play";
+			if (typeof setPlayerLyricPlayingState === "function") {
+				setPlayerLyricPlayingState(false);
+			}
+			showStatus("⏸ Music paused", false);
 			return;
 		}
 
 		if (lower === "play" || lower === "resume" || lower.includes("resume music") || lower === "start") {
-			setTimeout(function () {
-				removeTypingIndicator();
-				isChatProcessing = false;
-				if (typeof audio !== "undefined" && audio && audio.paused && audio.src) {
-					audio.play();
-					var playbtn = document.getElementById("playpausebtn");
-					if (playbtn) playbtn.className = "pause";
-					if (typeof setPlayerLyricPlayingState === "function") {
-						setPlayerLyricPlayingState(true);
-					}
-					appendMessage("bot", "▶ Playback resumed! Enjoy the music! 🎵", null, ["Next track", "Show lyrics"]);
-				} else {
-					appendMessage("bot", "▶ Let's get some music going! Pick a vibe below:", null, ["Trending Hindi", "Workout Pump", "Lo-Fi Focus"]);
+			if (typeof audio !== "undefined" && audio && audio.paused && audio.src) {
+				audio.play();
+				var playbtn2 = document.getElementById("playpausebtn");
+				if (playbtn2) playbtn2.className = "pause";
+				if (typeof setPlayerLyricPlayingState === "function") {
+					setPlayerLyricPlayingState(true);
 				}
-			}, 350);
+				var currentSong = (typeof playlist !== "undefined" && playlist && playlist[playlist_index]);
+				var title = currentSong ? currentSong.title : "track";
+				showStatus("▶ Playback resumed: <strong>" + title + "</strong>", true);
+			} else {
+				showStatus("▶ Tell me what to play: 'Play Kesariya', 'Late night lo-fi'...", false);
+			}
 			return;
 		}
 
 		if (lower.includes("next") || lower.includes("skip")) {
+			var nextBtn = document.getElementById("next-s");
+			if (nextBtn) nextBtn.click();
 			setTimeout(function () {
-				removeTypingIndicator();
-				isChatProcessing = false;
-				var nextBtn = document.getElementById("next-s");
-				if (nextBtn) nextBtn.click();
 				var currentSong = (typeof playlist !== "undefined" && playlist && playlist[playlist_index]);
 				var songName = currentSong ? currentSong.title : "next song";
-				appendMessage("bot", "⏭ Skipped to the next track: <strong>" + songName + "</strong> 🎶", null, ["Show lyrics", "Recommend similar songs"]);
-			}, 350);
+				showStatus("⏭ Skipped to: <strong>" + songName + "</strong>", true);
+			}, 200);
+			return;
+		}
+
+		if (lower.includes("prev") || lower.includes("previous") || lower.includes("back")) {
+			var prevBtn = document.getElementById("prev-s");
+			if (prevBtn) prevBtn.click();
+			setTimeout(function () {
+				var currentSong = (typeof playlist !== "undefined" && playlist && playlist[playlist_index]);
+				var songName = currentSong ? currentSong.title : "previous song";
+				showStatus("⏮ Playing: <strong>" + songName + "</strong>", true);
+			}, 200);
 			return;
 		}
 
 		if (lower.includes("lyric") || lower.includes("lyrics")) {
-			setTimeout(function () {
-				removeTypingIndicator();
-				isChatProcessing = false;
-				var lyricsModal = document.getElementById("lyrics_modal");
-				if (lyricsModal) {
-					lyricsModal.classList.add("active");
-					if (typeof loadLyricsForCurrentSong === "function") {
-						loadLyricsForCurrentSong();
-					}
+			var lyricsModal = document.getElementById("lyrics_modal");
+			if (lyricsModal) {
+				lyricsModal.classList.add("active");
+				if (typeof loadLyricsForCurrentSong === "function") {
+					loadLyricsForCurrentSong();
 				}
-				appendMessage("bot", "📜 Opened the real-time synced lyrics screen for you!", null, ["Play romantic songs", "Next song"]);
-			}, 350);
+			}
+			if (typeof switchTab === "function") {
+				switchTab("lyrics");
+			}
+			closeAISpotlight();
+			if (typeof showToast === "function") {
+				showToast("📜 Opened synced lyrics view");
+			}
 			return;
 		}
 
-		// Intelligent Music Query extraction
+		if (lower.includes("mute")) {
+			if (typeof audio !== "undefined" && audio) {
+				audio.muted = true;
+				showStatus("🔇 Audio muted", false);
+			}
+			return;
+		}
+
+		if (lower.includes("unmute")) {
+			if (typeof audio !== "undefined" && audio) {
+				audio.muted = false;
+				showStatus("🔊 Audio unmuted", false);
+			}
+			return;
+		}
+
+		// 2. Music Search & Recommendations via Saavn API
+		var isDirectPlay = lower.startsWith("play ") && !lower.endsWith("music") && lower !== "play";
+
+		// Strip query prefix words to pass accurate keyword to music search
 		var searchQuery = cleanPrompt
 			.replace(/^(can you play|please play|play songs by|play|recommend me|suggest me|find me|give me|i want to listen to|i want)\s+/gi, "")
 			.replace(/songs?|music|tracks?|hits?/gi, "")
@@ -322,141 +580,139 @@ function initAIChatBot() {
 
 		if (!searchQuery) searchQuery = cleanPrompt;
 
+		hideEmptyState();
+		showLoading(true);
+		isProcessing = true;
+
 		try {
 			if (typeof SaavnAPI !== "undefined" && SaavnAPI.searchSongs) {
-				var results = await SaavnAPI.searchSongs(searchQuery, 1, 10);
-				removeTypingIndicator();
+				var results = await SaavnAPI.searchSongs(searchQuery, 1, 15);
+				showLoading(false);
 
 				if (results && results.length > 0) {
-					var responseGreeting = "🎵 Here are the top tracks I curated for <strong>\"" + cleanPrompt + "\"</strong>. Tap ▶ Play to start jamming!";
-					if (lower.startsWith("play ") && results.length > 0) {
-						if (typeof playDirectSong === "function") {
-							playDirectSong(results[0]);
-						}
-						responseGreeting = "⚡ Now playing <strong>" + results[0].title + "</strong> by " + results[0].artist + "! Here are more recommendations:";
+					currentResults = results;
+					selectedIndex = -1;
+
+					// Direct Play: start playing first result if user typed "play <song>" and it wasn't a live debounce
+					if (isDirectPlay && !isLive) {
+						playSongDirectly(results[0]);
+						showStatus("⚡ Now playing: <strong>" + results[0].title + "</strong> • " + results[0].artist, true);
+					} else {
+						showStatus("✨ Curated <strong>" + results.length + "</strong> songs for \"" + cleanPrompt + "\"", false);
 					}
-					appendMessage("bot", responseGreeting, results, [
-						"More by " + (results[0].artist.split(",")[0] || "Artist"),
-						"High energy workout",
-						"Late night vibes"
-					]);
+
+					renderSpotlightResults(results);
 				} else {
-					appendMessage("bot", "🤔 I couldn't find exact tracks for \"" + cleanPrompt + "\". Let's try these popular vibes:", null, [
-						"Trending Hindi",
-						"Arijit Singh Hits",
-						"Lo-Fi Study Beats",
-						"Anirudh Energy Hits"
-					]);
+					currentResults = [];
+					showStatus("🤔 No matches found for \"" + cleanPrompt + "\". Try another artist, mood, or song.", false);
+					if (spotlightResults) {
+						spotlightResults.innerHTML = `
+							<div class="spotlight-empty-state" style="padding: 24px;">
+								<p>No tracks found. Try popular searches like <em>"Trending Hindi"</em>, <em>"Arijit Singh"</em>, or <em>"Lo-Fi Study"</em>.</p>
+							</div>
+						`;
+					}
 				}
 			} else {
-				removeTypingIndicator();
-				appendMessage("bot", "Music service is connecting. Try asking again in a moment!", null, ["Trending Hindi"]);
+				showLoading(false);
+				showStatus("Music service is connecting. Please try again in a moment.", false);
 			}
 		} catch (err) {
-			console.warn("AI Chat music search error:", err);
-			removeTypingIndicator();
-			appendMessage("bot", "✨ I'm your AI DJ! Try asking me for moods like *'Relaxing lo-fi'*, *'Workout pump'*, or artists like *'Arijit Singh'*!", null, [
-				"Trending Hindi",
-				"Deep Focus Lo-Fi",
-				"Workout Beats"
-			]);
+			console.warn("AI Spotlight query error:", err);
+			showLoading(false);
+			showStatus("✨ Could not fetch recommendations right now. Please try again.", false);
 		} finally {
-			isChatProcessing = false;
+			isProcessing = false;
 		}
 	}
 
-	if (sendChatBtn) {
-		sendChatBtn.addEventListener("click", function () {
-			if (chatInput) handleUserPrompt(chatInput.value);
-		});
-	}
+	// --------------------------------------------------------------------------
+	// Render Results in Spotlight
+	// --------------------------------------------------------------------------
+	function renderSpotlightResults(songs) {
+		if (!spotlightResults) return;
+		spotlightResults.innerHTML = "";
 
-	if (chatInput) {
-		chatInput.addEventListener("keydown", function (e) {
-			if (e.key === "Enter") {
-				e.preventDefault();
-				handleUserPrompt(this.value);
-			}
-		});
-	}
+		songs.forEach(function (song, index) {
+			var item = document.createElement("div");
+			item.className = "spotlight-song-item";
+			item.setAttribute("data-index", index);
 
-	if (clearChatBtn) {
-		clearChatBtn.addEventListener("click", function () {
-			if (chatMessages) {
-				chatMessages.innerHTML = `
-					<div class="chat-message bot-message">
-						<div class="message-avatar"><i class="fa fa-magic"></i></div>
-						<div class="message-body">
-							<div class="message-bubble">
-								<p>🧹 Chat cleared! What vibe are you in the mood for next?</p>
-							</div>
-							<div class="chat-quick-suggestions">
-								<button class="chat-chip" data-prompt="Play trending Hindi hits">🔥 Trending Hindi</button>
-								<button class="chat-chip" data-prompt="Calm acoustic songs for evening">☕ Chill Acoustic</button>
-								<button class="chat-chip" data-prompt="High energy workout tracks">⚡ Workout Pump</button>
-								<button class="chat-chip" data-prompt="Deep focus instrumental lo-fi">🎧 Focus Lo-Fi</button>
-							</div>
-						</div>
+			var isFav = (typeof FavoritesManager !== "undefined") && FavoritesManager.isFavorite(song);
+			var favIcon = isFav ? "fa fa-heart" : "fa fa-heart-o";
+			var favActive = isFav ? " active" : "";
+			var coverUrl = song.cover || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80";
+
+			item.innerHTML = `
+				<div class="spotlight-item-main">
+					<div class="spotlight-thumb-wrap">
+						<img src="${coverUrl}" alt="${song.title}" class="spotlight-song-thumb" loading="lazy">
+						<div class="spotlight-thumb-overlay"><i class="fa fa-play"></i></div>
 					</div>
-				`;
+					<div class="spotlight-song-details">
+						<div class="spotlight-song-title">${song.title}</div>
+						<div class="spotlight-song-meta">${song.artist || 'Unknown'} • ${song.durationStr || '3:30'}</div>
+					</div>
+				</div>
+				<div class="spotlight-item-actions">
+					<button class="spotlight-fav-btn${favActive}" title="${isFav ? 'Remove from Favorites' : 'Add to Favorites'}">
+						<i class="${favIcon}"></i>
+					</button>
+					<button class="spotlight-play-btn" title="Play Track">
+						<i class="fa fa-play"></i> Play
+					</button>
+				</div>
+			`;
+
+			// Favorite toggle
+			var favBtn = item.querySelector(".spotlight-fav-btn");
+			if (favBtn) {
+				favBtn.addEventListener("click", function (e) {
+					e.stopPropagation();
+					if (typeof FavoritesManager !== "undefined") {
+						FavoritesManager.toggleFavorite(song);
+						var nowFav = FavoritesManager.isFavorite(song);
+						favBtn.className = "spotlight-fav-btn" + (nowFav ? " active" : "");
+						favBtn.querySelector("i").className = nowFav ? "fa fa-heart" : "fa fa-heart-o";
+					}
+				});
 			}
+
+			// Play button
+			var playBtn = item.querySelector(".spotlight-play-btn");
+			if (playBtn) {
+				playBtn.addEventListener("click", function (e) {
+					e.stopPropagation();
+					playSongDirectly(song);
+				});
+			}
+
+			// Click row to play
+			item.addEventListener("click", function () {
+				playSongDirectly(song);
+			});
+
+			spotlightResults.appendChild(item);
 		});
 	}
 
-	// Chat Voice Input Mic
-	var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-	if (SpeechRecognition && chatVoiceBtn) {
-		var chatRec = new SpeechRecognition();
-		chatRec.continuous = false;
-		chatRec.interimResults = false;
-		chatRec.lang = "en-IN";
-
-		chatVoiceBtn.addEventListener("click", function () {
-			try {
-				chatVoiceBtn.classList.add("listening");
-				chatRec.start();
-				if (typeof showToast === "function") {
-					showToast("🎤 Listening... Speak to AI DJ");
-				}
-			} catch (e) {
-				console.warn("Chat speech start error:", e);
-			}
-		});
-
-		chatRec.onresult = function (event) {
-			chatVoiceBtn.classList.remove("listening");
-			var transcript = event.results[0][0].transcript;
-			if (transcript) {
-				if (chatInput) chatInput.value = transcript;
-				handleUserPrompt(transcript);
-			}
-		};
-
-		chatRec.onerror = function () {
-			chatVoiceBtn.classList.remove("listening");
-			if (typeof showToast === "function") {
-				showToast("Could not recognize voice. Please try again.");
-			}
-		};
-
-		chatRec.onend = function () {
-			chatVoiceBtn.classList.remove("listening");
-		};
-	}
-
-	// Delegate chat chip clicks with deduplication and stopPropagation
-	document.addEventListener("click", function (e) {
-		var chip = e.target.closest(".chat-chip");
-		if (chip) {
-			e.preventDefault();
-			e.stopPropagation();
-			var prompt = chip.getAttribute("data-prompt") || chip.textContent;
-			if (prompt) {
-				handleUserPrompt(prompt.trim());
-			}
+	function playSongDirectly(song) {
+		if (typeof playDirectSong === "function") {
+			playDirectSong(song);
 		}
-	});
-}
+		showStatus("▶ Now playing: <strong>" + song.title + "</strong> • " + (song.artist || ''), true);
+	}
 
-// Auto-initialize when window loads or script loads
-window.addEventListener("load", initAIChatBot);
+	// --------------------------------------------------------------------------
+	// Legacy Chat View Fallback Support
+	// --------------------------------------------------------------------------
+	// Retain initAIChatBot for compatibility if called elsewhere
+	window.initAIChatBot = initAISpotlight;
+
+	// Initialize on DOMContentLoaded or Load
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", initAISpotlight);
+	} else {
+		initAISpotlight();
+	}
+})();
