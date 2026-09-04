@@ -23,7 +23,123 @@
 				.trim();
 		},
 
-		// Fetch lyrics with multi-tier fallbacks (timestamps=true -> song only -> timestamps=false)
+		// Safe fetch with AbortController timeout to prevent hanging on slow/sleeping servers
+		fetchWithTimeout: async function (url, timeoutMs) {
+			timeoutMs = timeoutMs || 3500;
+			var controller = new AbortController();
+			var timer = setTimeout(function () {
+				try { controller.abort(); } catch (e) { }
+			}, timeoutMs);
+			try {
+				var res = await fetch(url, { signal: controller.signal });
+				clearTimeout(timer);
+				return res;
+			} catch (err) {
+				clearTimeout(timer);
+				throw err;
+			}
+		},
+
+		// Fast LRCLIB Provider (< 700ms, zero cold starts, global coverage)
+		fetchFromLrcLib: async function (cleanArtist, cleanTitle) {
+			var self = this;
+			if (!cleanTitle) return null;
+
+			var artists = (cleanArtist || "").split(/[,&/]/).map(function (s) { return s.trim(); }).filter(Boolean);
+			var primaryArtist = artists[0] || cleanArtist || "";
+			var secondaryArtist = artists[1] || "";
+
+			// 1. Direct query with primary artist
+			var queryParams = "?track_name=" + encodeURIComponent(cleanTitle);
+			if (primaryArtist) {
+				queryParams += "&artist_name=" + encodeURIComponent(primaryArtist);
+			}
+			try {
+				var res = await self.fetchWithTimeout("https://lrclib.net/api/get" + queryParams, 2800);
+				if (res.ok) {
+					var data = await res.json();
+					if (data && (data.syncedLyrics || data.plainLyrics)) {
+						return {
+							lyrics: data.syncedLyrics || data.plainLyrics,
+							timestamps: !!data.syncedLyrics,
+							source: "lrclib"
+						};
+					}
+				}
+			} catch (e) { }
+
+			// 2. Direct query with secondary artist if available (e.g. singer in "Pritam, Arijit Singh")
+			if (secondaryArtist) {
+				try {
+					var res2 = await self.fetchWithTimeout("https://lrclib.net/api/get?track_name=" + encodeURIComponent(cleanTitle) + "&artist_name=" + encodeURIComponent(secondaryArtist), 2200);
+					if (res2.ok) {
+						var data2 = await res2.json();
+						if (data2 && (data2.syncedLyrics || data2.plainLyrics)) {
+							return {
+								lyrics: data2.syncedLyrics || data2.plainLyrics,
+								timestamps: !!data2.syncedLyrics,
+								source: "lrclib"
+							};
+						}
+					}
+				} catch (e2) { }
+			}
+
+			// 3. Fast search query on LRCLIB (title + primary artist)
+			try {
+				var searchUrl = "https://lrclib.net/api/search?q=" + encodeURIComponent(cleanTitle + (primaryArtist ? " " + primaryArtist : ""));
+				var searchRes = await self.fetchWithTimeout(searchUrl, 2500);
+				if (searchRes.ok) {
+					var searchData = await searchRes.json();
+					if (Array.isArray(searchData) && searchData.length > 0) {
+						var best = searchData.find(function (item) { return item && item.syncedLyrics; }) || searchData[0];
+						if (best && (best.syncedLyrics || best.plainLyrics)) {
+							return {
+								lyrics: best.syncedLyrics || best.plainLyrics,
+								timestamps: !!best.syncedLyrics,
+								source: "lrclib"
+							};
+						}
+					}
+				}
+			} catch (e3) { }
+
+			return null;
+		},
+
+		// Secondary fallback on Render backend with strict 3.8s timeout
+		fetchFromRender: async function (cleanArtist, cleanTitle) {
+			var self = this;
+			try {
+				var url = self.baseUrl + "?artist=" + encodeURIComponent(cleanArtist) + "&song=" + encodeURIComponent(cleanTitle) + "&timestamps=true";
+				var res = await self.fetchWithTimeout(url, 3800);
+				if (res.ok) {
+					var data = await res.json();
+					if (data && data.status === "success" && data.data) {
+						return data.data;
+					}
+				}
+			} catch (e) {
+				console.warn("Render lyrics primary error:", e);
+			}
+
+			// Plain text fallback on Render
+			try {
+				var url3 = self.baseUrl + "?artist=" + encodeURIComponent(cleanArtist) + "&song=" + encodeURIComponent(cleanTitle) + "&timestamps=false";
+				var res3 = await self.fetchWithTimeout(url3, 2500);
+				if (res3.ok) {
+					var data3 = await res3.json();
+					if (data3 && data3.status === "success" && data3.data) {
+						data3.data.timestamps = false;
+						return data3.data;
+					}
+				}
+			} catch (e3) { }
+
+			return null;
+		},
+
+		// Fetch lyrics with instant LRCLIB primary (< 700ms) + Render fallback
 		fetchLyrics: async function (artist, songTitle) {
 			var cleanArtist = this.cleanQuery(artist);
 			var cleanTitle = this.cleanQuery(songTitle);
@@ -42,53 +158,41 @@
 			var self = this;
 			var fetchPromise = (async function () {
 				try {
-					// 1. Primary: fetch with artist and song title with timestamps
-					try {
-						var url = self.baseUrl + "?artist=" + encodeURIComponent(cleanArtist) + "&song=" + encodeURIComponent(cleanTitle) + "&timestamps=true";
-						var res = await fetch(url);
-						if (res.ok) {
-							var data = await res.json();
-							if (data && data.status === "success" && data.data) {
-								self.cache[cacheKey] = data.data;
-								return data.data;
-							}
-						}
-					} catch (e1) {
-						console.warn("Lyrics primary fetch error:", e1);
+					// 1. High-speed LRCLIB (< 700ms, no cold starts)
+					var lrcResult = await self.fetchFromLrcLib(cleanArtist, cleanTitle);
+					if (lrcResult && lrcResult.lyrics) {
+						self.cache[cacheKey] = lrcResult;
+						return lrcResult;
 					}
 
-					// 2. Secondary fallback: fetch with song title only (no artist param — empty string causes 400)
-					try {
-						var url2 = self.baseUrl + "?song=" + encodeURIComponent(cleanTitle) + "&timestamps=true";
-						var res2 = await fetch(url2);
-						if (res2.ok) {
-							var data2 = await res2.json();
-							if (data2 && data2.status === "success" && data2.data) {
-								self.cache[cacheKey] = data2.data;
-								return data2.data;
-							}
-						}
-					} catch (e2) {
-						console.warn("Lyrics secondary fetch error:", e2);
+					// 2. Render backend (with 3.8s timeout)
+					var renderResult = await self.fetchFromRender(cleanArtist, cleanTitle);
+					if (renderResult && (renderResult.lyrics || renderResult.timed_lyrics)) {
+						self.cache[cacheKey] = renderResult;
+						return renderResult;
 					}
 
-					// 3. Tertiary fallback: with artist and song fetch with timestamp false (plain text lyrics)
+					// 3. Broad LRCLIB track search without artist constraint
 					try {
-						var url3 = self.baseUrl + "?artist=" + encodeURIComponent(cleanArtist) + "&song=" + encodeURIComponent(cleanTitle) + "&timestamps=false";
-						var res3 = await fetch(url3);
-						if (res3.ok) {
-							var data3 = await res3.json();
-							if (data3 && data3.status === "success" && data3.data) {
-								data3.data.timestamps = false;
-								self.cache[cacheKey] = data3.data;
-								return data3.data;
+						var broadRes = await self.fetchWithTimeout("https://lrclib.net/api/search?q=" + encodeURIComponent(cleanTitle), 2200);
+						if (broadRes.ok) {
+							var broadData = await broadRes.json();
+							if (Array.isArray(broadData) && broadData.length > 0) {
+								var matched = broadData.find(function (item) { return item && item.syncedLyrics; }) || broadData[0];
+								if (matched && (matched.syncedLyrics || matched.plainLyrics)) {
+									var resObj = {
+										lyrics: matched.syncedLyrics || matched.plainLyrics,
+										timestamps: !!matched.syncedLyrics,
+										source: "lrclib"
+									};
+									self.cache[cacheKey] = resObj;
+									return resObj;
+								}
 							}
 						}
-					} catch (e3) {
-						console.warn("Lyrics tertiary fetch error:", e3);
-					}
+					} catch (eBroad) { }
 
-					// Cache null so subsequent requests for tracks without lyrics don't repeatedly make 3 API calls
+					// Cache null so subsequent checks don't repeat API calls
 					self.cache[cacheKey] = null;
 					return null;
 				} finally {
