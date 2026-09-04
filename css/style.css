@@ -6114,7 +6114,6 @@ input[type='range']::-webkit-slider-thumb:hover {
 		height: calc(100vh - 210px) !important;
 		max-height: calc(100vh - 210px) !important;
 		overflow-y: auto;
-		top: 50px;
 	}
 
 	#lyrics_view:not(.mobile-lyrics-mode-active) .lyrics-right-panel {

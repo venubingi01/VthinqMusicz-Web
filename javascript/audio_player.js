@@ -2599,6 +2599,9 @@ async function loadLyricsForCurrentSong(forceReload) {
 				var startSec = line.start_time / 1000;
 				audio.currentTime = startSec;
 				if (audio.paused) audio.play();
+				if (window.RealVideoLooper && typeof window.RealVideoLooper.syncTimelineWithAudio === "function") {
+					window.RealVideoLooper.syncTimelineWithAudio(true);
+				}
 			};
 
 			c.appendChild(p);
@@ -3663,6 +3666,9 @@ function initAudioPlayer() {
 				var pct = parseFloat(this.value) / 500;
 				audio.currentTime = pct * audio.duration;
 				updateSyncedLyrics();
+				if (window.RealVideoLooper && typeof window.RealVideoLooper.syncTimelineWithAudio === "function") {
+					window.RealVideoLooper.syncTimelineWithAudio(false);
+				}
 			}
 		});
 
@@ -3672,6 +3678,9 @@ function initAudioPlayer() {
 				var pct = parseFloat(this.value) / 500;
 				audio.currentTime = pct * audio.duration;
 				updateSyncedLyrics();
+				if (window.RealVideoLooper && typeof window.RealVideoLooper.syncTimelineWithAudio === "function") {
+					window.RealVideoLooper.syncTimelineWithAudio(true);
+				}
 			}
 		});
 
@@ -3686,7 +3695,12 @@ function initAudioPlayer() {
 			}
 		});
 		window.addEventListener("mouseup", function () {
-			seeking = false;
+			if (seeking) {
+				seeking = false;
+				if (window.RealVideoLooper && typeof window.RealVideoLooper.syncTimelineWithAudio === "function") {
+					window.RealVideoLooper.syncTimelineWithAudio(true);
+				}
+			}
 		});
 
 		// Touch events for mobile scrub dragging
@@ -3702,10 +3716,20 @@ function initAudioPlayer() {
 		}, { passive: true });
 
 		window.addEventListener("touchend", function () {
-			seeking = false;
+			if (seeking) {
+				seeking = false;
+				if (window.RealVideoLooper && typeof window.RealVideoLooper.syncTimelineWithAudio === "function") {
+					window.RealVideoLooper.syncTimelineWithAudio(true);
+				}
+			}
 		});
 		window.addEventListener("touchcancel", function () {
-			seeking = false;
+			if (seeking) {
+				seeking = false;
+				if (window.RealVideoLooper && typeof window.RealVideoLooper.syncTimelineWithAudio === "function") {
+					window.RealVideoLooper.syncTimelineWithAudio(true);
+				}
+			}
 		});
 	}
 
@@ -3855,6 +3879,9 @@ function initAudioPlayer() {
 			var pct = parseFloat(seekslider.value) / 500;
 			audio.currentTime = pct * audio.duration;
 			updateSyncedLyrics();
+			if (window.RealVideoLooper && typeof window.RealVideoLooper.syncTimelineWithAudio === "function") {
+				window.RealVideoLooper.syncTimelineWithAudio(true);
+			}
 			return;
 		}
 		var rect = seekslider.getBoundingClientRect();
@@ -3863,6 +3890,9 @@ function initAudioPlayer() {
 		audio.currentTime = pct * audio.duration;
 		seekslider.value = pct * 500;
 		updateSyncedLyrics();
+		if (window.RealVideoLooper && typeof window.RealVideoLooper.syncTimelineWithAudio === "function") {
+			window.RealVideoLooper.syncTimelineWithAudio(false);
+		}
 	}
 
 	function setvolume() {
@@ -4953,7 +4983,50 @@ function setMobileLyricsMode(showLyrics) {
 			if (icon2) icon2.className = "fa-solid fa-quote-right";
 			toggleBtn.classList.remove("active");
 		}
+
+		// Back to original: remove video-mode-active and restore original album cover view
+		var leftPanel = document.getElementById("lyrics_left_panel");
+		var rightPanel = document.getElementById("lyrics_right_panel");
+		if (leftPanel) leftPanel.classList.remove("video-mode-active");
+		if (rightPanel) rightPanel.classList.remove("video-mode-active");
+
+		var artWrapper = document.getElementById("lyrics_art_wrapper");
+		if (artWrapper) artWrapper.style.display = "";
+
+		var videoBg = document.getElementById("lyrics_panel_video_bg");
+		if (videoBg) videoBg.style.display = "none";
+
+		var videoBar = document.getElementById("video_loop_bar");
+		if (videoBar) videoBar.style.display = "none";
+
+		var showVideoBtn = document.getElementById("show_video_btn");
+		if (showVideoBtn) {
+			showVideoBtn.classList.remove("active");
+			var showVideoBtnText = document.getElementById("show_video_btn_text");
+			if (showVideoBtnText) showVideoBtnText.textContent = "Show Video";
+		}
+
+		var activeVideoElements = document.querySelectorAll(".video-mode-active");
+		activeVideoElements.forEach(function (el) {
+			el.classList.remove("video-mode-active");
+		});
+
+		// Synchronize with RealVideoLooper / LyricsVideo
+		var videoLooper = window.RealVideoLooper || window.LyricsVideo || window.SpotifyCanvas;
+		if (videoLooper) {
+			if (typeof videoLooper.toggleVideoDisplay === "function") {
+				videoLooper.toggleVideoDisplay(false);
+			}
+			if (typeof videoLooper.pauseVideo === "function") {
+				videoLooper.pauseVideo();
+			}
+			videoLooper.videoCycleState = 0;
+			if (typeof videoLooper.updateCycleButtonUI === "function") {
+				videoLooper.updateCycleButtonUI();
+			}
+		}
 	}
+
 }
 
 function initMobileLyricsToggle() {
@@ -4966,7 +5039,14 @@ function initMobileLyricsToggle() {
 		toggleBtn.addEventListener("click", function (e) {
 			e.preventDefault();
 			var isLyricsActive = lyricsView && lyricsView.classList.contains("mobile-lyrics-mode-active");
-			setMobileLyricsMode(!isLyricsActive);
+			var textSpan = document.getElementById("mobile_lyrics_toggle_text");
+			var isCoverText = textSpan && textSpan.textContent.trim().toLowerCase() === "cover";
+
+			if (isLyricsActive || isCoverText) {
+				setMobileLyricsMode(false);
+			} else {
+				setMobileLyricsMode(true);
+			}
 		});
 	}
 

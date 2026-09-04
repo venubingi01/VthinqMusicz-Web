@@ -63,18 +63,98 @@
 
 		wasAudioPlayingBeforeFullscreen: false,
 
-		// Send commands to YouTube iframe (pauseVideo, playVideo, etc.)
-		sendYouTubeCommand: function (iframe, command) {
+		// Send commands to YouTube iframe (pauseVideo, playVideo, seekTo, etc.)
+		sendYouTubeCommand: function (iframe, command, args) {
 			if (!iframe || !iframe.contentWindow) return;
 			try {
-				iframe.contentWindow.postMessage(JSON.stringify({
+				var payload = {
 					event: "command",
 					func: command,
-					args: ""
-				}), "*");
+					args: args !== undefined ? (Array.isArray(args) ? args : [args]) : []
+				};
+				iframe.contentWindow.postMessage(JSON.stringify(payload), "*");
 			} catch (e) {
 				console.warn("[LyricsVideo] Error sending command to YouTube iframe:", e);
 			}
+		},
+
+		// Seek all active YouTube video iframes to exact seconds
+		seekVideoTo: function (seconds, allowSeekAhead) {
+			if (typeof seconds !== "number" || isNaN(seconds) || seconds < 0) return;
+			var allowAhead = typeof allowSeekAhead === "boolean" ? allowSeekAhead : true;
+
+			var canvasIframe = document.querySelector("#lyrics_video_embed_container iframe");
+			if (canvasIframe) {
+				this.sendYouTubeCommand(canvasIframe, "seekTo", [seconds, allowAhead]);
+			}
+			var fsIframe = document.querySelector("#fullscreen_video_embed iframe");
+			if (fsIframe) {
+				this.sendYouTubeCommand(fsIframe, "seekTo", [seconds, allowAhead]);
+			}
+		},
+
+		lastSeekTime: 0,
+		seekThrottleTimer: null,
+		isSeekingAudio: false,
+
+		// Synchronize YouTube video timeline with audio player's currentTime
+		syncTimelineWithAudio: function (immediate) {
+			var self = this;
+			var audioEl = window.audio || (typeof audio !== "undefined" ? audio : null);
+			if (!audioEl || typeof audioEl.currentTime !== "number" || isNaN(audioEl.currentTime)) return;
+
+			var targetTime = audioEl.currentTime;
+
+			if (immediate) {
+				if (this.seekThrottleTimer) {
+					clearTimeout(this.seekThrottleTimer);
+					this.seekThrottleTimer = null;
+				}
+				this.seekVideoTo(targetTime, true);
+				this.lastSeekTime = Date.now();
+				return;
+			}
+
+			// Throttled seeking while dragging to prevent YouTube player buffering stutter (max once every 100ms)
+			var now = Date.now();
+			if (now - this.lastSeekTime >= 100) {
+				this.lastSeekTime = now;
+				this.seekVideoTo(targetTime, false);
+			} else {
+				if (this.seekThrottleTimer) clearTimeout(this.seekThrottleTimer);
+				this.seekThrottleTimer = setTimeout(function () {
+					self.seekVideoTo(targetTime, true);
+					self.lastSeekTime = Date.now();
+				}, 100);
+			}
+		},
+
+		// Bind all audio timeline events (play, pause, seeking, seeked) to YouTube video
+		bindAudioSyncEvents: function () {
+			var self = this;
+			var audioEl = window.audio || (typeof audio !== "undefined" ? audio : null);
+			if (!audioEl || audioEl._videoSyncBound) return;
+			audioEl._videoSyncBound = true;
+
+			audioEl.addEventListener("pause", function () {
+				self.pauseVideo();
+				self.syncTimelineWithAudio(true);
+			});
+			audioEl.addEventListener("ended", function () {
+				self.pauseVideo();
+			});
+			audioEl.addEventListener("play", function () {
+				self.syncTimelineWithAudio(true);
+				self.resumeVideo();
+			});
+			audioEl.addEventListener("seeking", function () {
+				self.isSeekingAudio = true;
+				self.syncTimelineWithAudio(false);
+			});
+			audioEl.addEventListener("seeked", function () {
+				self.isSeekingAudio = false;
+				self.syncTimelineWithAudio(true);
+			});
 		},
 
 		// Pause any active YouTube video (canvas or fullscreen)
@@ -102,19 +182,8 @@
 		bindEvents: function () {
 			var self = this;
 
-			// Synchronize with audio element play/pause events
-			var audioEl = window.audio || (typeof audio !== "undefined" ? audio : null);
-			if (audioEl) {
-				audioEl.addEventListener("pause", function () {
-					self.pauseVideo();
-				});
-				audioEl.addEventListener("ended", function () {
-					self.pauseVideo();
-				});
-				audioEl.addEventListener("play", function () {
-					self.resumeVideo();
-				});
-			}
+			// Synchronize with audio element events
+			this.bindAudioSyncEvents();
 
 			// Unified cycling video button in lyrics-controls-group
 			var cycleBtn = document.getElementById("lyrics_video_toggle_btn");
@@ -124,13 +193,27 @@
 				});
 			}
 
-			// Capture YouTube iframe postMessage errors
+			// Capture YouTube iframe postMessage messages & errors
 			window.addEventListener("message", function (e) {
 				try {
 					var msg = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
-					if (msg && (msg.event === "onError" || (msg.info && msg.info.playerState === -1 && self.videoCycleState === 1))) {
+					if (!msg) return;
+
+					if (msg.event === "onError" || (msg.info && msg.info.playerState === -1 && self.videoCycleState === 1)) {
 						console.warn("[LyricsVideo] YouTube player reported error:", msg);
 						self.onVideoLoadFailed();
+						return;
+					}
+
+					// Dynamic drift synchronization: if YouTube video drifts from audio timeline by > 1.5s, re-sync
+					if (msg.info && typeof msg.info.currentTime === "number") {
+						var audioEl = window.audio || (typeof audio !== "undefined" ? audio : null);
+						if (audioEl && !audioEl.paused && !self.isSeekingAudio && self.isVideoVisible) {
+							var drift = Math.abs(audioEl.currentTime - msg.info.currentTime);
+							if (drift > 1.5) {
+								self.seekVideoTo(audioEl.currentTime, true);
+							}
+						}
 					}
 				} catch (err) { }
 			});
@@ -307,9 +390,22 @@
 			}
 
 			if (embed) {
+				var startSec = (audioEl && typeof audioEl.currentTime === "number") ? Math.floor(audioEl.currentTime) : 0;
 				var url = "https://www.youtube-nocookie.com/embed/" + this.currentVideoId +
-					"?autoplay=1&mute=0&controls=1&modestbranding=1&rel=0&playsinline=1&enablejsapi=1";
+					"?autoplay=1&mute=0&controls=1&modestbranding=1&rel=0&playsinline=1&enablejsapi=1&start=" + startSec;
 				embed.innerHTML = '<iframe src="' + url + '" class="fullscreen-video-iframe" allow="autoplay; encrypted-media; fullscreen" allowfullscreen frameborder="0"></iframe>';
+
+				var fsIframe = embed.querySelector("iframe");
+				if (fsIframe) {
+					fsIframe.onload = function () {
+						try {
+							fsIframe.contentWindow.postMessage(JSON.stringify({ event: "listening" }), "*");
+						} catch (e) { }
+						if (audioEl && audioEl.currentTime) {
+							self.seekVideoTo(audioEl.currentTime, true);
+						}
+					};
+				}
 			}
 
 			if (overlay) {
@@ -431,6 +527,18 @@
 				if (artWrapper) artWrapper.style.display = "none";
 				if (videoBg) videoBg.style.display = "block";
 				if (videoBar) videoBar.style.display = "flex";
+
+				// Sync timeline immediately to match current audio position
+				this.bindAudioSyncEvents();
+				var audioEl = window.audio || (typeof audio !== "undefined" ? audio : null);
+				if (audioEl) {
+					this.seekVideoTo(audioEl.currentTime, true);
+					if (audioEl.paused) {
+						this.pauseVideo();
+					} else {
+						this.resumeVideo();
+					}
+				}
 			} else {
 				// Hide Video / Show Cover
 				if (btn) {
@@ -669,9 +777,21 @@
 					self.onVideoLoadFailed();
 				};
 				iframe.onload = function () {
+					try {
+						iframe.contentWindow.postMessage(JSON.stringify({ event: "listening" }), "*");
+					} catch (e) { }
+
+					self.bindAudioSyncEvents();
 					var audioEl = window.audio || (typeof audio !== "undefined" ? audio : null);
-					if (audioEl && audioEl.paused) {
-						self.pauseVideo();
+					if (audioEl) {
+						if (typeof audioEl.currentTime === "number" && audioEl.currentTime > 0) {
+							self.seekVideoTo(audioEl.currentTime, true);
+						}
+						if (audioEl.paused) {
+							self.pauseVideo();
+						} else {
+							self.resumeVideo();
+						}
 					}
 				};
 
