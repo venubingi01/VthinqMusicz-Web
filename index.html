@@ -396,18 +396,21 @@
                   <button id="lyrics_fav_btn" class="lyrics-fav-action-btn" title="Add to Favorites">
                      <i class="fa fa-heart-o"></i> <span>Favorite</span>
                   </button>
-                  <button id="mobile_lyrics_toggle_btn" class="lyrics-fav-action-btn lyrics-mobile-toggle-btn" title="View Synced Lyrics">
+                  <button id="mobile_lyrics_toggle_btn" class="lyrics-fav-action-btn lyrics-mobile-toggle-btn"
+                     title="View Synced Lyrics">
                      <i class="fa-solid fa-quote-right"></i> <span id="mobile_lyrics_toggle_text">Lyrics</span>
                   </button>
                   <!-- Single Cycling Video Toggle Button (Show Video -> Full Screen -> Cover) -->
-                  <button type="button" id="lyrics_video_toggle_btn" class="lyrics-fav-action-btn lyrics-video-cycle-btn" title="Show Music Video">
+                  <button type="button" id="lyrics_video_toggle_btn"
+                     class="lyrics-fav-action-btn lyrics-video-cycle-btn" title="Show Music Video">
                      <i class="fa-solid fa-video"></i> <span id="lyrics_video_toggle_text">Video</span>
                   </button>
                   <button id="lyrics_audio_fx_btn" class="lyrics-fav-action-btn lyrics-fx-btn"
                      title="Equalizer & 3D Spatial Audio">
                      <i class="fa-solid fa-sliders"></i> <span>EQ & 3D</span>
                   </button>
-                  <button id="lyrics_queue_btn" class="lyrics-fav-action-btn lyrics-queue-btn" title="Current Playlist / Queue">
+                  <button id="lyrics_queue_btn" class="lyrics-fav-action-btn lyrics-queue-btn"
+                     title="Current Playlist / Queue">
                      <i class="fa-solid fa-list-ul"></i> <span>Queue</span>
                   </button>
                   <div class="lyrics-live-badge" id="visualizer_toggle"><i class="fa-brands fa-soundcloud"></i>
@@ -487,7 +490,8 @@
    </div>
 
    <!-- Fullscreen Music Video Overlay with Landscape Mobile Rotation -->
-   <div id="fullscreen_video_overlay" class="fullscreen-video-overlay" style="display: none;" role="dialog" aria-modal="true" aria-label="Music Video Full Screen">
+   <div id="fullscreen_video_overlay" class="fullscreen-video-overlay" style="display: none;" role="dialog"
+      aria-modal="true" aria-label="Music Video Full Screen">
       <div class="fullscreen-video-container" id="fullscreen_video_container">
          <div id="fullscreen_video_embed" class="fullscreen-video-embed"></div>
          <div class="fullscreen-video-topbar">
@@ -496,10 +500,8 @@
                <h4 id="fullscreen_video_title">Music Video</h4>
             </div>
             <div class="fullscreen-video-actions">
-               <button type="button" id="video_rotate_landscape_btn" class="video-overlay-btn video-rotate-btn" title="Toggle Landscape Rotation (Mobile)">
-                  <i class="fa-solid fa-rotate"></i> <span>Rotate</span>
-               </button>
-               <button type="button" id="close_fullscreen_video_btn" class="video-overlay-btn video-exit-btn" title="Exit Full Screen (Esc)">
+               <button type="button" id="close_fullscreen_video_btn" class="video-overlay-btn video-exit-btn"
+                  title="Exit Full Screen (Esc)">
                   <i class="fa-solid fa-compress"></i> <span>Exit</span>
                </button>
             </div>
@@ -508,7 +510,8 @@
    </div>
 
    <!-- Current Playlist / Queue Modal -->
-   <div id="current_playlist_modal" class="modal-overlay current-playlist-modal-overlay" role="dialog" aria-modal="true" aria-label="Current Playlist Queue">
+   <div id="current_playlist_modal" class="modal-overlay current-playlist-modal-overlay" role="dialog" aria-modal="true"
+      aria-label="Current Playlist Queue">
       <div class="modal-card current-playlist-modal-card">
          <div class="modal-header current-playlist-header">
             <div class="playlist-header-title-box">
@@ -519,9 +522,12 @@
                </div>
             </div>
             <div class="playlist-header-actions">
-               <button id="queue_shuffle_btn" class="queue-tool-btn" title="Shuffle Current Queue"><i class="fa fa-random"></i> Shuffle</button>
-               <button id="queue_clear_btn" class="queue-tool-btn queue-clear-btn" title="Clear Queue"><i class="fa fa-trash-o"></i> Clear</button>
-               <button id="close_current_playlist_modal" class="close-modal-btn" title="Close Queue"><i class="fa fa-times"></i></button>
+               <button id="queue_shuffle_btn" class="queue-tool-btn" title="Shuffle Current Queue"><i
+                     class="fa fa-random"></i> Shuffle</button>
+               <button id="queue_clear_btn" class="queue-tool-btn queue-clear-btn" title="Clear Queue"><i
+                     class="fa fa-trash-o"></i> Clear</button>
+               <button id="close_current_playlist_modal" class="close-modal-btn" title="Close Queue"><i
+                     class="fa fa-times"></i></button>
             </div>
          </div>
          <div class="current-playlist-body" id="current_playlist_body">

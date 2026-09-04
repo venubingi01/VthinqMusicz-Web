@@ -3786,7 +3786,8 @@ input[type='range']::-webkit-slider-thumb:hover {
 	position: fixed;
 	left: 0;
 	right: 0;
-	margin: 10% 45.5%;
+	margin: 10% 44.9%;
+	bottom: 0;
 }
 
 .video-overlay-btn {
@@ -6060,13 +6061,14 @@ input[type='range']::-webkit-slider-thumb:hover {
 	#lyrics_view.mobile-lyrics-mode-active .lyrics-right-panel {
 		display: block !important;
 		width: 100% !important;
-		height: calc(100vh - 190px) !important;
+		height: calc(100vh - 160px) !important;
 	}
 
 	#lyrics_view.mobile-lyrics-mode-active .lyrics-content-scroll {
 		height: calc(100vh - 210px) !important;
 		max-height: calc(100vh - 210px) !important;
 		overflow-y: auto;
+		top: 50px;
 	}
 
 	#lyrics_view:not(.mobile-lyrics-mode-active) .lyrics-right-panel {
