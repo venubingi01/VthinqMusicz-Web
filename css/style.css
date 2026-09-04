@@ -2971,7 +2971,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 .floating-chat-btn {
 	position: fixed;
 	right: 25px;
-	bottom: 135px;
+	bottom: 150px;
 	z-index: 10000;
 	background: var(--gradient-accent);
 	color: #fff;
