@@ -1167,6 +1167,7 @@ body {
 	justify-content: center;
 	font-size: 16px;
 	transition: transform 0.25s ease, box-shadow 0.25s ease;
+	position: relative;
 }
 
 #playpausebtn:hover {
@@ -3024,7 +3025,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 	}
 
 	100% {
-		transform: scale(1.2, 1.5);
+		transform: scale(1.5);
 		opacity: 0;
 	}
 }
