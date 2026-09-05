@@ -2511,6 +2511,17 @@ function setPlayerLyricPlayingState(isPlaying) {
 	}
 }
 
+function setLyricsAvailabilityState(hasLyrics) {
+	var bar = document.getElementById("player_lyric_bar");
+	if (hasLyrics) {
+		document.body.classList.add("has-lyrics");
+		if (bar) bar.classList.add("has-lyrics");
+	} else {
+		document.body.classList.remove("has-lyrics");
+		if (bar) bar.classList.remove("has-lyrics");
+	}
+}
+
 var currentLyricsSongKey = null;
 
 async function loadLyricsForCurrentSong(forceReload) {
@@ -2520,9 +2531,13 @@ async function loadLyricsForCurrentSong(forceReload) {
 
 	// If lyrics are already loaded for this song, don't call API or wipe DOM until song changes
 	if (!forceReload && currentLyricsSongKey === songKey) {
+		var hasCachedLyrics = (LyricsService.currentTimedLyrics && LyricsService.currentTimedLyrics.length > 0);
+		setLyricsAvailabilityState(hasCachedLyrics);
 		updateSyncedLyrics();
 		return;
 	}
+
+	setLyricsAvailabilityState(false);
 
 	currentLyricsSongKey = songKey;
 	if (window.RealVideoLooper && typeof window.RealVideoLooper.onSongChange === "function") {
@@ -2587,6 +2602,9 @@ async function loadLyricsForCurrentSong(forceReload) {
 
 	LyricsService.currentTimedLyrics = timed;
 
+	var hasLyrics = (timed && timed.length > 0) || (lyricsData && lyricsData.lyrics && lyricsData.lyrics.trim().length > 0 && lyricsData.lyrics.trim() !== "No lyrics found");
+	setLyricsAvailabilityState(hasLyrics);
+
 	if (!timed || timed.length === 0) {
 		updatePlayerSingleLineLyric("♪ " + song.title + " • " + song.artist, false);
 	} else {
@@ -2596,6 +2614,7 @@ async function loadLyricsForCurrentSong(forceReload) {
 	if (lyricsData && lyricsData?.hasTimestamps == false) {
 		timed = [];
 		if (lyricsData.lyrics) {
+			setLyricsAvailabilityState(true);
 			// render the lyricsdata.lyrics here]
 			containers.forEach(function (c) {
 				if (!c) return;
@@ -2612,6 +2631,7 @@ async function loadLyricsForCurrentSong(forceReload) {
 		c.innerHTML = "";
 
 		if (!timed || timed.length === 0) {
+			setLyricsAvailabilityState(false);
 			c.innerHTML = '<div class="no-lyrics-placeholder"><i class="fa-solid fa-guitar"></i> No synced lyrics found for this track.</div>';
 			hideNoLyricsPlaceholder();
 			return;
@@ -3083,6 +3103,16 @@ function switchTab(tabName, skipHashUpdate) {
 	if (header) header.classList.remove("hide-mobile");
 	var floatingChatBtn = document.getElementById("floating_chat_btn");
 
+	if (tabName === "lyrics") {
+		document.body.classList.add("lyrics-page-active");
+		var hasCachedLyrics = (LyricsService.currentTimedLyrics && LyricsService.currentTimedLyrics.length > 0);
+		if (hasCachedLyrics) {
+			setLyricsAvailabilityState(true);
+		}
+	} else {
+		document.body.classList.remove("lyrics-page-active");
+	}
+
 	if (tabName === "equalizer") {
 		if (window.AudioFXEngine) {
 			window.AudioFXEngine.openModal("eq");
@@ -3246,6 +3276,11 @@ function initAudioPlayer() {
 	if (lyricsBackBtn) {
 		lyricsBackBtn.addEventListener("click", function (e) {
 			e.stopPropagation();
+			// remove the class mobile-lyrics-mode-active to lyrics_view
+			var lyricsView = document.getElementById("lyrics_view");
+			if (lyricsView) {
+				lyricsView.classList.remove("mobile-lyrics-mode-active");
+			}
 			switchTab("home");
 		});
 	}
