@@ -5,11 +5,19 @@
   "start_url": "./index.html",
   "id": "./index.html",
   "display": "standalone",
-  "display_override": ["standalone", "window-controls-overlay", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "window-controls-overlay",
+    "minimal-ui"
+  ],
   "orientation": "any",
   "background_color": "#0a0c14",
   "theme_color": "#0a0c14",
-  "categories": ["music", "entertainment", "audio"],
+  "categories": [
+    "music",
+    "entertainment",
+    "audio"
+  ],
   "icons": [
     {
       "src": "icons/icon-192.png",
@@ -42,21 +50,39 @@
       "short_name": "AI DJ",
       "description": "Chat with Sangeetham AI DJ for music recommendations",
       "url": "./index.html?tab=ai_chat",
-      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Search Music",
       "short_name": "Search",
-      "description": "Search millions of JioSaavn tracks",
+      "description": "Search millions of Sangeetham Music tracks",
       "url": "./index.html?tab=search",
-      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Live Lyrics",
       "short_name": "Lyrics",
       "description": "View synced karaoke lyrics",
       "url": "./index.html?tab=lyrics",
-      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }

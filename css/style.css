@@ -1663,13 +1663,29 @@ input[type='range']::-webkit-slider-thumb:hover {
 	pointer-events: none;
 }
 
+.lyrics-left-panel.video-mode-active .lyrics-panel-video-bg {
+	display: block !important;
+}
+
+.lyrics-left-panel.video-mode-active .lyrics-art-wrapper {
+	display: none !important;
+}
+
+.lyrics-left-panel:not(.video-mode-active) .lyrics-panel-video-bg {
+	display: none !important;
+}
+
+.lyrics-left-panel:not(.video-mode-active) .lyrics-art-wrapper {
+	display: flex !important;
+}
+
 /* Dark Spotify-style gradient vignette overlay */
 .lyrics-panel-video-overlay {
 	position: absolute;
 	inset: 0;
 	z-index: 2;
 	pointer-events: none;
-
+	transition: background 0.35s ease;
 }
 
 .video-loop-loader {
@@ -1728,12 +1744,12 @@ input[type='range']::-webkit-slider-thumb:hover {
 	margin: auto;
 }
 
-/* When video is showing: hide both top button and bottom content by default, reveal on hover */
+/* When video is showing: keep bottom metadata and controls clearly visible with overlay contrast */
 .lyrics-left-panel.video-mode-active .lyrics-video-btn-wrapper {
-	opacity: 0;
-	visibility: hidden;
-	pointer-events: none;
-	transform: translateY(-12px);
+	opacity: 1;
+	visibility: visible;
+	pointer-events: auto;
+	transform: none;
 }
 
 .lyrics-left-panel.video-mode-active .lyrics-panel-content-bottom {
@@ -1741,25 +1757,26 @@ input[type='range']::-webkit-slider-thumb:hover {
 	visibility: hidden;
 	pointer-events: none;
 	transform: translateY(200%);
+	transition: opacity 0.35s ease, visibility 0.35s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.lyrics-left-panel.video-mode-active:hover .lyrics-video-btn-wrapper,
-.lyrics-left-panel.video-mode-active:focus-within .lyrics-video-btn-wrapper,
-.lyrics-left-panel.video-mode-active:active .lyrics-video-btn-wrapper,
+/* Reveal on 5-second active class, hover, focus */
+.lyrics-left-panel.video-mode-active.controls-visible .lyrics-panel-content-bottom,
 .lyrics-left-panel.video-mode-active:hover .lyrics-panel-content-bottom,
-.lyrics-left-panel.video-mode-active:focus-within .lyrics-panel-content-bottom,
-.lyrics-left-panel.video-mode-active:active .lyrics-panel-content-bottom {
-	opacity: 1;
+.lyrics-left-panel.video-mode-active:focus-within .lyrics-panel-content-bottom {
+	transform: translateY(40%);
 	visibility: visible;
+	opacity: 1;
 	pointer-events: auto;
-	transform: translateY(50%);
 }
 
+.lyrics-left-panel.video-mode-active.controls-visible .lyrics-panel-video-overlay,
 .lyrics-left-panel.video-mode-active:hover .lyrics-panel-video-overlay,
-.lyrics-left-panel.video-mode-active:focus-within .lyrics-panel-video-overlay,
-.lyrics-left-panel.video-mode-active:active .lyrics-panel-video-overlay {
-	background: rgba(0, 0, 0, 0.348);
+.lyrics-left-panel.video-mode-active:focus-within .lyrics-panel-video-overlay {
+	background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.12) 40%, rgba(0, 0, 0, 0.88) 100%);
 }
+
+
 
 .lyrics-left-panel.video-mode-active .show-video-btn {
 	background: var(--gradient-accent, linear-gradient(135deg, #ff2d49 0%, #ff7600 50%, #ffd00f 100%));
@@ -2771,7 +2788,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 /* Toast Notification */
 .toast-notification {
 	position: fixed;
-	bottom: 110px;
+	bottom: 70px;
 	left: 50%;
 	transform: translateX(-50%) translateY(30px);
 	background: rgba(18, 21, 34, 0.95);
@@ -2790,6 +2807,7 @@ input[type='range']::-webkit-slider-thumb:hover {
 	opacity: 0;
 	pointer-events: none;
 	transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+	min-width: 200px;
 }
 
 .toast-notification.show {

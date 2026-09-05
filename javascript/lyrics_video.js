@@ -6,7 +6,7 @@
 	"use strict";
 
 	var RealVideoLooper = {
-		isVideoVisible: false,
+		isVideoVisible: true,
 		isVideoAvailable: false,
 		videoFailedToLoad: false,
 		currentSongKey: null,
@@ -18,16 +18,54 @@
 			"https://pipedapi.leptons.xyz/search"
 		],
 
+		controlsTimer: null,
+
+		// Temporarily show bottom controls (default 5000ms), auto-hiding afterwards
+		showBottomControls: function (durationMs) {
+			var leftPanel = document.getElementById("lyrics_left_panel");
+			if (!leftPanel) return;
+
+			var duration = typeof durationMs === "number" ? durationMs : 5000;
+			leftPanel.classList.add("controls-visible");
+
+			if (this.controlsTimer) {
+				clearTimeout(this.controlsTimer);
+				this.controlsTimer = null;
+			}
+
+			var self = this;
+			this.controlsTimer = setTimeout(function () {
+				leftPanel.classList.remove("controls-visible");
+				self.controlsTimer = null;
+			}, duration);
+		},
+
+		// Immediately hide bottom controls
+		hideBottomControls: function () {
+			var leftPanel = document.getElementById("lyrics_left_panel");
+			if (leftPanel) {
+				leftPanel.classList.remove("controls-visible");
+			}
+			if (this.controlsTimer) {
+				clearTimeout(this.controlsTimer);
+				this.controlsTimer = null;
+			}
+		},
+
 		init: function () {
 			this.bindEvents();
 
 			var curSong = this.getCurrentSong();
 			if (curSong) {
 				this.onSongChange(curSong);
+			} else {
+				this.toggleVideoDisplay(true);
+				this.updateCycleButtonUI();
 			}
+			this.showBottomControls(5000);
 		},
 
-		videoCycleState: 0, // 0 = Cover, 1 = Canvas Video, 2 = Full Screen
+		videoCycleState: 1, // 0 = Cover, 1 = Canvas Video, 2 = Full Screen
 
 		// Get current song cover URL safely
 		getSongCover: function (song) {
@@ -199,7 +237,7 @@
 					var msg = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
 					if (!msg) return;
 
-					if (msg.event === "onError" || (msg.info && msg.info.playerState === -1 && self.videoCycleState === 1)) {
+					if (msg.event === "onError" || (msg.info && (typeof msg.info.error === "number" || typeof msg.info.errorCode === "number"))) {
 						console.warn("[LyricsVideo] YouTube player reported error:", msg);
 						self.onVideoLoadFailed();
 						return;
@@ -287,6 +325,44 @@
 				customInput.addEventListener("keydown", function (e) {
 					if (e.key === "Enter") handleCustomSubmit();
 				});
+			}
+
+			// Left Panel Interaction (Hover on Desktop, Tap to show for 5 seconds on Mobile)
+			var leftPanel = document.getElementById("lyrics_left_panel");
+			if (leftPanel) {
+				leftPanel.addEventListener("click", function (e) {
+					var isControlClick = e.target.closest && (
+						e.target.closest(".lyrics-panel-content-bottom") ||
+						e.target.closest("button") ||
+						e.target.closest(".lyrics-live-badge") ||
+						e.target.closest("a")
+					);
+
+					if (isControlClick) {
+						// Clicking interactive controls resets/extends 5s timer
+						self.showBottomControls(5000);
+						return;
+					}
+
+					// Tapping video/canvas area toggles controls
+					if (leftPanel.classList.contains("controls-visible")) {
+						self.hideBottomControls();
+					} else {
+						self.showBottomControls(5000);
+					}
+				});
+
+				leftPanel.addEventListener("touchstart", function (e) {
+					var isControlClick = e.target.closest && (
+						e.target.closest(".lyrics-panel-content-bottom") ||
+						e.target.closest("button") ||
+						e.target.closest(".lyrics-live-badge") ||
+						e.target.closest("a")
+					);
+					if (isControlClick) {
+						self.showBottomControls(5000);
+					}
+				}, { passive: true });
 			}
 		},
 
@@ -527,6 +603,7 @@
 				if (artWrapper) artWrapper.style.display = "none";
 				if (videoBg) videoBg.style.display = "block";
 				if (videoBar) videoBar.style.display = "flex";
+				this.showBottomControls(5000);
 
 				// Sync timeline immediately to match current audio position
 				this.bindAudioSyncEvents();
@@ -576,8 +653,7 @@
 			this.isVideoAvailable = false;
 			this.videoFailedToLoad = false;
 			this.currentVideoId = null;
-			this.videoCycleState = 0;
-			this.updateCycleButtonUI();
+			this.videoCycleState = 1;
 
 			var container = document.getElementById("lyrics_video_embed_container");
 			if (container) {
@@ -588,8 +664,9 @@
 			// Keep unified cycling button visible in lyrics-controls-group
 			this.setButtonVisibility(true);
 
-			// Hide active video display if song changes
-			this.toggleVideoDisplay(false);
+			// Show active video canvas display by default
+			this.toggleVideoDisplay(true);
+			this.updateCycleButtonUI();
 
 			// Start background search & pre-buffer immediately
 			this.loadVideoForSong(song);
@@ -616,6 +693,10 @@
 			this.isVideoAvailable = false;
 			this.videoFailedToLoad = false;
 			this.currentVideoId = null;
+			this.videoCycleState = 0;
+
+			// Switch to cover mode
+			this.toggleVideoDisplay(false);
 
 			// Ensure cover image is displayed as background on lyrics_video_embed_container
 			var container = document.getElementById("lyrics_video_embed_container");
@@ -635,6 +716,10 @@
 		onVideoLoadFailed: function () {
 			this.isVideoAvailable = false;
 			this.videoFailedToLoad = true;
+			this.videoCycleState = 0;
+
+			// Switch to cover mode
+			this.toggleVideoDisplay(false);
 
 			// Remove broken iframe immediately to reveal the cover image background
 			var container = document.getElementById("lyrics_video_embed_container");
@@ -688,11 +773,16 @@
 					.replace(/\(From "[^"]*"\)/gi, "")
 					.replace(/\(feat\.[^)]*\)/gi, "")
 					.replace(/•.*/gi, "")
-					.replace(/[\[\]]/g, "")
+					.replace(/[\[\]\(\)]/g, "")
 					.trim();
 			};
 
-			var searchQuery = clean(song.artist) + " " + clean(song.title) + " official video";
+			var artistStr = clean(song.artist);
+			var primaryArtist = artistStr ? artistStr.split(",")[0].trim() : "";
+			var cleanTitle = clean(song.title);
+
+			// Search with primary artist + title + "official video" for maximum match accuracy
+			var searchQuery = (primaryArtist ? primaryArtist + " " : "") + cleanTitle + " official video";
 			var videoId = await this.searchYouTubeVideoId(searchQuery);
 
 			// Check if song changed while searching
@@ -707,10 +797,17 @@
 				} catch (e) { }
 				this.onVideoFound(videoId);
 			} else {
-				// Fallback search with title only
-				var fallbackId = await this.searchYouTubeVideoId(clean(song.title) + " song video");
+				// Fallback search with title + primary artist song video
+				var fallbackQuery = cleanTitle + (primaryArtist ? " " + primaryArtist : "") + " song video";
+				var fallbackId = await this.searchYouTubeVideoId(fallbackQuery);
+				if (!fallbackId) {
+					fallbackId = await this.searchYouTubeVideoId(cleanTitle + " song video");
+				}
 				if (activeKey === songKey && fallbackId) {
 					this.cachedVideoIds[songKey] = fallbackId;
+					try {
+						localStorage.setItem("canvas_yt_" + songKey, fallbackId);
+					} catch (e) { }
 					this.onVideoFound(fallbackId);
 				} else if (activeKey === songKey) {
 					// Both primary and fallback searches failed to find a video
@@ -725,7 +822,11 @@
 				var endpoint = this.apiEndpoints[i];
 				try {
 					var url = endpoint + "?q=" + encodeURIComponent(query) + "&filter=videos";
-					var res = await fetch(url);
+					var fetchOpts = {};
+					if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+						fetchOpts.signal = AbortSignal.timeout(4000);
+					}
+					var res = await fetch(url, fetchOpts);
 					if (res.ok) {
 						var data = await res.json();
 						var items = data.items || data;
@@ -802,9 +903,31 @@
 			var loader = document.getElementById("video_loop_loader");
 			if (loader) loader.style.display = "none";
 
+			// Keep video mode active by default unless user manually chose cover mode (videoCycleState === 0)
+			if (this.videoCycleState !== 0) {
+				this.videoCycleState = 1;
+				this.toggleVideoDisplay(true);
+			}
+
 			// Keep cycling button available
 			this.setButtonVisibility(true);
 			this.updateCycleButtonUI();
+		},
+
+		// Ensure video mode is active on lyrics page
+		ensureDefaultVideoMode: function () {
+			if (!this.videoFailedToLoad) {
+				this.toggleVideoDisplay(true);
+				if (this.videoCycleState === 0) {
+					this.videoCycleState = 1;
+				}
+				this.updateCycleButtonUI();
+				var audioEl = window.audio || (typeof audio !== "undefined" ? audio : null);
+				if (audioEl && !audioEl.paused) {
+					this.resumeVideo();
+					this.syncTimelineWithAudio(true);
+				}
+			}
 		},
 
 		// Handle custom user URL or ID

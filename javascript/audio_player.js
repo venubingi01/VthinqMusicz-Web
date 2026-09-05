@@ -282,6 +282,36 @@ var SaavnAPI = {
 		return [];
 	},
 
+	getSongById: async function (songId) {
+		if (!songId) return null;
+		var self = this;
+		var urls = [
+			self.primaryApiUrl + "/songs?ids=" + encodeURIComponent(songId),
+			self.primaryApiUrl + "/songs/" + encodeURIComponent(songId),
+			self.fallbackApiUrl + "/songs?id=" + encodeURIComponent(songId),
+			self.secondaryFallbackApiUrl + "/songs?id=" + encodeURIComponent(songId)
+		];
+		for (var i = 0; i < urls.length; i++) {
+			try {
+				var res = await fetch(urls[i]);
+				if (res.ok) {
+					var json = await res.json();
+					var items = (json.data && (json.data.songs || json.data.results || json.data)) || json.results || json.songs || json.data;
+					if (Array.isArray(items) && items.length > 0) {
+						var norm = self.normalizeSong(items[0]);
+						if (norm && norm.file) return norm;
+					} else if (items && typeof items === "object" && !Array.isArray(items)) {
+						var norm2 = self.normalizeSong(items);
+						if (norm2 && norm2.file) return norm2;
+					}
+				}
+			} catch (e) {
+				console.warn("[SaavnAPI] getSongById error on " + urls[i] + ":", e);
+			}
+		}
+		return null;
+	},
+
 	normalizeAlbum: function (raw) {
 		if (!raw) return null;
 		var id = raw.id || raw.albumid || "";
@@ -2686,6 +2716,28 @@ function playTrackAtIndex(index) {
 		context.resume();
 	}
 
+	var handleAutoplayBlock = function () {
+		var playbtn = document.getElementById("playpausebtn");
+		if (playbtn) playbtn.className = "play";
+		var autoResume = function () {
+			if (context && context.state === 'suspended') {
+				context.resume().catch(function () { });
+			}
+			audio.play().then(function () {
+				var pb = document.getElementById("playpausebtn");
+				if (pb) pb.className = "pause";
+				if (window.RealVideoLooper) {
+					window.RealVideoLooper.resumeVideo();
+					window.RealVideoLooper.syncTimelineWithAudio(true);
+				}
+			}).catch(function () { });
+			window.removeEventListener("click", autoResume);
+			window.removeEventListener("touchstart", autoResume);
+		};
+		window.addEventListener("click", autoResume, { once: true });
+		window.addEventListener("touchstart", autoResume, { once: true });
+	};
+
 	if (song.file) {
 		audio.src = song.file;
 		audio.play().then(function () {
@@ -2693,11 +2745,13 @@ function playTrackAtIndex(index) {
 			if (playbtn) playbtn.className = "pause";
 		}).catch(function (err) {
 			console.warn("Audio play promise catch:", err);
+			handleAutoplayBlock();
 		});
 	} else if (song.fallbacks && song.fallbacks.length > 0) {
 		audio.src = song.fallbacks.shift();
 		audio.play().catch(function (err) {
 			console.warn("Audio fallback play promise catch:", err);
+			handleAutoplayBlock();
 		});
 	} else {
 		var statusElem = document.getElementById("playlist_status");
@@ -3047,10 +3101,27 @@ function switchTab(tabName, skipHashUpdate) {
 		if (lyricsView) lyricsView.classList.add("active");
 		loadLyricsForCurrentSong();
 		if (header) header.classList.add("hide-mobile");
+		var videoLooper = window.RealVideoLooper || window.LyricsVideo || window.SpotifyCanvas;
+		if (videoLooper) {
+			var cur = playlist && playlist[playlist_index];
+			if (cur && !videoLooper.currentSongKey) {
+				videoLooper.onSongChange(cur);
+			}
+			if (typeof videoLooper.ensureDefaultVideoMode === "function") {
+				videoLooper.ensureDefaultVideoMode();
+			} else if (!videoLooper.videoFailedToLoad) {
+				videoLooper.toggleVideoDisplay(true);
+				if (videoLooper.videoCycleState === 0) videoLooper.videoCycleState = 1;
+				videoLooper.updateCycleButtonUI();
+			}
+			if (typeof videoLooper.showBottomControls === "function") {
+				videoLooper.showBottomControls(5000);
+			}
+		}
 		if (!skipHashUpdate) {
 			var cur = playlist && playlist[playlist_index];
 			if (cur && cur.title) {
-				updateUrlHash("lyrics", { song: cur.title, artist: cur.artist });
+				updateUrlHash("lyrics", { id: cur.id || "", song: cur.title, artist: cur.artist || "" });
 			} else {
 				updateUrlHash("lyrics");
 			}
@@ -4698,7 +4769,7 @@ function shareCurrentLyrics() {
 		showToast("Select or play a song to share its lyrics!");
 		return;
 	}
-	var shareUrl = window.location.origin + window.location.pathname + "#lyrics?song=" + encodeURIComponent(currentSong.title) + "&artist=" + encodeURIComponent(currentSong.artist);
+	var shareUrl = window.location.origin + window.location.pathname + "#lyrics?id=" + encodeURIComponent(currentSong.id || "") + "&song=" + encodeURIComponent(currentSong.title) + "&artist=" + encodeURIComponent(currentSong.artist || "");
 
 	if (navigator.share) {
 		navigator.share({
@@ -4717,6 +4788,19 @@ function shareCurrentLyrics() {
 
 async function handleUrlHashNavigation() {
 	var hash = window.location.hash.substring(1);
+	if (!hash && window.location.search) {
+		var searchParams = new URLSearchParams(window.location.search);
+		var tabParam = searchParams.get("tab");
+		if (tabParam) {
+			hash = tabParam;
+			var songParam = searchParams.get("song");
+			var artistParam = searchParams.get("artist");
+			var idParam = searchParams.get("id");
+			if (songParam || idParam) {
+				hash += "?id=" + encodeURIComponent(idParam || "") + "&song=" + encodeURIComponent(songParam || "") + "&artist=" + encodeURIComponent(artistParam || "");
+			}
+		}
+	}
 	if (!hash) return;
 
 	var parts = hash.split("?");
@@ -4739,17 +4823,8 @@ async function handleUrlHashNavigation() {
 		openPlaylistDetails(params.id, false);
 	} else if (route === "lyrics") {
 		switchTab("lyrics", true);
-		if (params.song) {
-			var currentSong = playlist && playlist[playlist_index];
-			if (!currentSong || currentSong.title.toLowerCase() !== params.song.toLowerCase()) {
-				var query = params.song + (params.artist ? " " + params.artist : "");
-				var searchResults = await SaavnAPI.searchSongs(query, 1, 5);
-				if (searchResults.length > 0) {
-					playDirectSong(searchResults[0]);
-				}
-			} else {
-				loadLyricsForCurrentSong();
-			}
+		if (params.id || params.song) {
+			await openAndPlaySharedSong(params);
 		} else {
 			loadLyricsForCurrentSong();
 		}
@@ -4763,6 +4838,73 @@ async function handleUrlHashNavigation() {
 		}
 	} else if (["home", "favorites", "ai_chat", "motivational", "top_charts", "charts", "deep_focus", "latest"].indexOf(route) !== -1) {
 		switchTab(route, true);
+	}
+}
+
+async function openAndPlaySharedSong(params) {
+	var songId = params.id;
+	var targetTitle = (params.song || "").trim().toLowerCase();
+
+	// 1. Check if the song is already in the current playlist
+	if (playlist && playlist.length > 0) {
+		for (var i = 0; i < playlist.length; i++) {
+			var s = playlist[i];
+			if (songId && s.id === songId) {
+				playTrackAtIndex(i);
+				return;
+			}
+			if (targetTitle && s.title && s.title.toLowerCase() === targetTitle) {
+				playTrackAtIndex(i);
+				return;
+			}
+		}
+	}
+
+	// 2. If songId is present, fetch direct song metadata
+	if (songId && typeof SaavnAPI.getSongById === "function") {
+		try {
+			var directSong = await SaavnAPI.getSongById(songId);
+			if (directSong && directSong.file) {
+				playDirectSong(directSong);
+				return;
+			}
+		} catch (e) {
+			console.warn("[ShareLink] Error fetching song by ID:", e);
+		}
+	}
+
+	// 3. Search by title + artist
+	if (params.song) {
+		var clean = function (str) {
+			if (!str) return "";
+			return str
+				.replace(/\(From "[^"]*"\)/gi, "")
+				.replace(/\(feat\.[^)]*\)/gi, "")
+				.replace(/•.*/gi, "")
+				.replace(/[\[\]\(\)]/g, "")
+				.trim();
+		};
+
+		var query = clean(params.song) + (params.artist ? " " + clean(params.artist).split(",")[0] : "");
+		try {
+			var results = await SaavnAPI.searchSongs(query, 1, 5);
+			if (!results || results.length === 0) {
+				results = await SaavnAPI.searchSongs(clean(params.song), 1, 5);
+			}
+			if (results && results.length > 0) {
+				playDirectSong(results[0]);
+				return;
+			}
+		} catch (err) {
+			console.warn("[ShareLink] Search error:", err);
+		}
+	}
+
+	// 4. Fallback if search failed: if current song exists, play and load lyrics
+	if (playlist && playlist[playlist_index]) {
+		playTrackAtIndex(playlist_index);
+	} else {
+		loadLyricsForCurrentSong();
 	}
 }
 
@@ -4983,50 +5125,11 @@ function setMobileLyricsMode(showLyrics) {
 			if (icon2) icon2.className = "fa-solid fa-quote-right";
 			toggleBtn.classList.remove("active");
 		}
-
-		// Back to original: remove video-mode-active and restore original album cover view
-		var leftPanel = document.getElementById("lyrics_left_panel");
-		var rightPanel = document.getElementById("lyrics_right_panel");
-		if (leftPanel) leftPanel.classList.remove("video-mode-active");
-		if (rightPanel) rightPanel.classList.remove("video-mode-active");
-
-		var artWrapper = document.getElementById("lyrics_art_wrapper");
-		if (artWrapper) artWrapper.style.display = "";
-
-		var videoBg = document.getElementById("lyrics_panel_video_bg");
-		if (videoBg) videoBg.style.display = "none";
-
-		var videoBar = document.getElementById("video_loop_bar");
-		if (videoBar) videoBar.style.display = "none";
-
-		var showVideoBtn = document.getElementById("show_video_btn");
-		if (showVideoBtn) {
-			showVideoBtn.classList.remove("active");
-			var showVideoBtnText = document.getElementById("show_video_btn_text");
-			if (showVideoBtnText) showVideoBtnText.textContent = "Show Video";
-		}
-
-		var activeVideoElements = document.querySelectorAll(".video-mode-active");
-		activeVideoElements.forEach(function (el) {
-			el.classList.remove("video-mode-active");
-		});
-
-		// Synchronize with RealVideoLooper / LyricsVideo
 		var videoLooper = window.RealVideoLooper || window.LyricsVideo || window.SpotifyCanvas;
-		if (videoLooper) {
-			if (typeof videoLooper.toggleVideoDisplay === "function") {
-				videoLooper.toggleVideoDisplay(false);
-			}
-			if (typeof videoLooper.pauseVideo === "function") {
-				videoLooper.pauseVideo();
-			}
-			videoLooper.videoCycleState = 0;
-			if (typeof videoLooper.updateCycleButtonUI === "function") {
-				videoLooper.updateCycleButtonUI();
-			}
+		if (videoLooper && typeof videoLooper.showBottomControls === "function") {
+			videoLooper.showBottomControls(5000);
 		}
 	}
-
 }
 
 function initMobileLyricsToggle() {
@@ -5182,6 +5285,11 @@ function initVoiceSearch(triggerSearchFn) {
 			processVoiceQuery(sampleQuery);
 		});
 	});
+
+	// Check initial URL route/hash for direct deep links and shared songs/lyrics
+	if (window.location.hash || window.location.search) {
+		handleUrlHashNavigation();
+	}
 }
 
 window.addEventListener("load", initAudioPlayer);
