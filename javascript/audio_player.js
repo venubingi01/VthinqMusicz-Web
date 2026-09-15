@@ -3608,7 +3608,7 @@ function initAudioPlayer() {
 
 		var songsContainer = document.getElementById("songslistcon");
 		if (songsContainer) {
-			songsContainer.innerHTML = '<div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Searching JioSaavn for ' + currentSearchType + ' "' + q + '"...</div>';
+			songsContainer.innerHTML = '<div class="loading-state"><i class="fa fa-circle-o-notch fa-spin"></i> Searching for ' + currentSearchType + ' "' + q + '"...</div>';
 		}
 		var lazyControls = document.getElementById("search_lazy_controls");
 		if (lazyControls) lazyControls.style.display = "none";
