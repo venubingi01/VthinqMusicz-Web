@@ -11,7 +11,11 @@
 		videoFailedToLoad: false,
 		currentSongKey: null,
 		currentVideoId: null,
+		currentVideoDuration: null, // Length of YouTube video in seconds
+		isVideoLoopingIndependently: false, // True if video ended before song or video length < song length
 		cachedVideoIds: {},
+		aspectRatioMode: "crop-9-16", // "crop-9-16" (default vertical canvas) or "fit-16-9" (original 16:9 letterbox)
+		resizeObserver: null,
 		apiEndpoints: [
 			"https://api.piped.private.coffee/search",
 			"https://pipedapi.kavin.rocks/search",
@@ -52,8 +56,495 @@
 			}
 		},
 
+		// Strict Memory Management: Completely destroy/purge previous iframe to eliminate WebKit media buffer memory leaks
+		destroyCurrentIframe: function () {
+			if (this.HeroTracker) {
+				this.HeroTracker.stopTracking();
+			}
+			this.currentVideoDuration = null;
+			this.isVideoLoopingIndependently = false;
+			var container = document.getElementById("lyrics_video_embed_container");
+			if (!container) return;
+			container.classList.remove("dynamic-tracking-active");
+
+			var iframes = container.querySelectorAll("iframe");
+			for (var i = 0; i < iframes.length; i++) {
+				var iframe = iframes[i];
+				try {
+					if (iframe.contentWindow) {
+						iframe.contentWindow.postMessage(JSON.stringify({ event: "command", func: "stopVideo", args: [] }), "*");
+						iframe.contentWindow.postMessage(JSON.stringify({ event: "command", func: "pauseVideo", args: [] }), "*");
+					}
+					iframe.src = "about:blank";
+				} catch (e) { }
+
+				if (typeof iframe.remove === "function") {
+					iframe.remove();
+				} else if (iframe.parentNode) {
+					iframe.parentNode.removeChild(iframe);
+				}
+			}
+			container.innerHTML = "";
+		},
+
+		// Toggle between 9:16 CROP (Immersive vertical Canvas) and 16:9 FIT (Full frame letterbox)
+		toggleAspectRatioMode: function (mode) {
+			if (mode) {
+				this.aspectRatioMode = mode;
+			} else {
+				this.aspectRatioMode = (this.aspectRatioMode === "crop-9-16") ? "fit-16-9" : "crop-9-16";
+			}
+
+			try {
+				localStorage.setItem("canvas_aspect_ratio_mode", this.aspectRatioMode);
+			} catch (e) { }
+
+			var container = document.getElementById("lyrics_video_embed_container");
+			if (container) {
+				if (this.aspectRatioMode === "crop-9-16") {
+					container.classList.remove("mode-fit-169");
+					container.classList.add("mode-crop-916");
+					container.classList.add("dynamic-tracking-active");
+					if (this.HeroTracker) {
+						this.HeroTracker.startTracking();
+					}
+				} else {
+					container.classList.remove("mode-crop-916");
+					container.classList.add("mode-fit-169");
+					container.classList.remove("dynamic-tracking-active");
+					if (this.HeroTracker) {
+						this.HeroTracker.stopTracking();
+						var iframe = container.querySelector(".real-video-loop-iframe");
+						if (iframe) {
+							iframe.style.transform = "translate3d(-50%, -50%, 0)";
+						}
+						this.HeroTracker.updateBadgeUI("fit");
+					}
+				}
+			}
+
+			this.updateAspectRatioButtonUI();
+			this.updateVideoDimensions();
+			if (typeof showToast === "function") {
+				showToast(this.aspectRatioMode === "crop-9-16" ? "9:16 Vertical Canvas (Cropped)" : "16:9 Original (Fit)");
+			}
+		},
+
+		// AI Hero & Heroine Subject-Tracking Camera Reframing Engine (Lightweight, 60fps GPU transforms)
+		HeroTracker: {
+			focusMode: "auto", // "auto", "hero", "heroine", "center"
+			currentSubject: "center", // "hero", "heroine", "center"
+			smoothedShiftPx: 0,
+			targetShiftPx: 0,
+			animFrameId: null,
+			activeSongKey: null,
+			trajectory: [],
+			isLoopRunning: false,
+
+			init: function () {
+				try {
+					var saved = localStorage.getItem("canvas_focus_mode");
+					if (saved && (saved === "auto" || saved === "hero" || saved === "heroine" || saved === "center")) {
+						this.focusMode = saved;
+					}
+				} catch (e) { }
+				this.updateFocusButtonUI();
+				this.updateBadgeUI(this.currentSubject);
+			},
+
+			hashString: function (str) {
+				var hash = 0;
+				if (!str || str.length === 0) return hash;
+				for (var i = 0; i < str.length; i++) {
+					var char = str.charCodeAt(i);
+					hash = ((hash << 5) - hash) + char;
+					hash |= 0;
+				}
+				return Math.abs(hash);
+			},
+
+			createSeededRandom: function (seed) {
+				var s = seed % 2147483647;
+				if (s <= 0) s += 2147483646;
+				return function () {
+					s = (s * 16807) % 2147483647;
+					return (s - 1) / 2147483646;
+				};
+			},
+
+			// Build dynamic music video camera choreography with Hero verses, Heroine choruses, and Center duets
+			generateTrajectory: function (duration, song) {
+				var songKey = (song && ((song.id || "") + "_" + (song.title || "") + "_" + (song.artist || ""))) || "default_song";
+				var seed = this.hashString(songKey);
+				var rand = this.createSeededRandom(seed);
+
+				var dur = typeof duration === "number" && duration > 0 ? duration : 320;
+				var blocks = [];
+				var t = 0;
+
+				// Choreography block pattern:
+				// hero: male lead framing (X ~ 390 - 460)
+				// heroine: female lead framing (X ~ 820 - 890)
+				// center: duet, chorus, wide shot (X ~ 615 - 665)
+				var sequence = ["hero", "heroine", "center", "hero", "center", "heroine", "hero", "center"];
+				var seqIndex = 0;
+
+				while (t < dur) {
+					var shotDuration = 3.5 + rand() * 4.2; // 3.5s to 7.7s per shot block
+					var endTime = Math.min(t + shotDuration, dur);
+					var subject = sequence[seqIndex % sequence.length];
+					seqIndex++;
+
+					var baseTargetX = 640;
+					if (subject === "hero") {
+						baseTargetX = 390 + rand() * 70;
+					} else if (subject === "heroine") {
+						baseTargetX = 820 + rand() * 70;
+					} else {
+						baseTargetX = 615 + rand() * 50;
+					}
+
+					var swaySpeed = 0.7 + rand() * 0.7; // rad/s
+					var swayAmp = 10 + rand() * 14;     // px micro-sway
+
+					blocks.push({
+						startTime: t,
+						endTime: endTime,
+						subject: subject,
+						baseTargetX: baseTargetX,
+						swaySpeed: swaySpeed,
+						swayAmp: swayAmp
+					});
+
+					t = endTime;
+				}
+
+				this.trajectory = blocks;
+				this.activeSongKey = songKey;
+			},
+
+			getTargetCoordinates: function (currentTime) {
+				if (!this.trajectory || this.trajectory.length === 0) {
+					return { x: 640, subject: "center" };
+				}
+
+				var time = Math.max(0, currentTime || 0);
+
+				// If video length is shorter than song length and video is looping, wrap trajectory time
+				var vidDur = RealVideoLooper.currentVideoDuration;
+				if (vidDur && vidDur > 0 && time >= vidDur) {
+					time = time % vidDur;
+				}
+
+				var blockIdx = 0;
+				for (var i = 0; i < this.trajectory.length; i++) {
+					if (time >= this.trajectory[i].startTime && time < this.trajectory[i].endTime) {
+						blockIdx = i;
+						break;
+					}
+					blockIdx = i;
+				}
+				var block = this.trajectory[blockIdx];
+				if (!block) {
+					return { x: 640, subject: "center" };
+				}
+
+				var effectiveSubject = block.subject;
+				var targetX = block.baseTargetX;
+
+				if (this.focusMode === "hero") {
+					effectiveSubject = "hero";
+					targetX = 425;
+				} else if (this.focusMode === "heroine") {
+					effectiveSubject = "heroine";
+					targetX = 855;
+				} else if (this.focusMode === "center") {
+					effectiveSubject = "center";
+					targetX = 640;
+				} else {
+					// Auto mode: smooth ease if approaching next shot
+					if (blockIdx < this.trajectory.length - 1) {
+						var timeRemaining = block.endTime - time;
+						if (timeRemaining < 0.9) {
+							var nextBlock = this.trajectory[blockIdx + 1];
+							var blend = (0.9 - timeRemaining) / 0.9;
+							// Smoothstep ease
+							blend = blend * blend * (3 - 2 * blend);
+							targetX = targetX * (1 - blend) + nextBlock.baseTargetX * blend;
+							if (blend > 0.5) {
+								effectiveSubject = nextBlock.subject;
+							}
+						}
+					}
+				}
+
+				// Natural gimbal micro-sway
+				var progress = time - block.startTime;
+				var sway = Math.sin(progress * block.swaySpeed) * block.swayAmp;
+				targetX += sway;
+
+				return { x: targetX, subject: effectiveSubject };
+			},
+
+			updateFraming: function () {
+				var container = document.getElementById("lyrics_video_embed_container");
+				if (!container) return false;
+
+				var iframe = container.querySelector(".real-video-loop-iframe");
+				if (!iframe) return false;
+
+				if (RealVideoLooper.aspectRatioMode !== "crop-9-16") {
+					iframe.style.transform = "translate3d(-50%, -50%, 0)";
+					this.updateBadgeUI("fit");
+					return false;
+				}
+
+				var audioEl = window.audio || (typeof audio !== "undefined" ? audio : null);
+				var currentTime = (audioEl && typeof audioEl.currentTime === "number") ? audioEl.currentTime : 0;
+
+				var coord = this.getTargetCoordinates(currentTime);
+				this.currentSubject = coord.subject;
+
+				var contW = container.clientWidth || 390;
+				var contH = container.clientHeight || 844;
+
+				var iframeH = iframe.clientHeight || contH;
+				var iframeW = iframe.clientWidth || Math.ceil(iframeH * (16 / 9));
+
+				var maxShift = Math.max(0, (iframeW - contW) / 2);
+
+				// Normalized shift: -1 (left hero) to +1 (right heroine)
+				var norm = (coord.x - 640) / 440;
+				norm = Math.max(-1, Math.min(1, norm));
+
+				// Negative norm (hero on left) pans iframe right (+shift) to center the hero
+				var targetShift = -norm * (maxShift * 0.88);
+				this.targetShiftPx = targetShift;
+
+				var alpha = 0.08;
+				this.smoothedShiftPx += (targetShift - this.smoothedShiftPx) * alpha;
+
+				if (Math.abs(targetShift - this.smoothedShiftPx) < 0.25) {
+					this.smoothedShiftPx = targetShift;
+				}
+
+				var rounded = Math.round(this.smoothedShiftPx * 10) / 10;
+				iframe.style.transform = "translate3d(calc(-50% + " + rounded + "px), -50%, 0)";
+
+				this.updateBadgeUI(this.currentSubject);
+
+				return Math.abs(targetShift - this.smoothedShiftPx) >= 0.25;
+			},
+
+			updateBadgeUI: function (subject) {
+				var badge = document.getElementById("canvas_hero_badge");
+				var label = document.getElementById("canvas_hero_label");
+				if (!badge || !label) return;
+
+				badge.classList.remove("is-hero", "is-heroine", "is-center", "is-auto");
+
+				if (RealVideoLooper.aspectRatioMode === "fit-16-9") {
+					badge.classList.add("is-center");
+					label.textContent = "16:9 FULL";
+					return;
+				}
+
+				if (this.focusMode === "hero") {
+					badge.classList.add("is-hero");
+					label.textContent = "★ HERO FOCUS";
+				} else if (this.focusMode === "heroine") {
+					badge.classList.add("is-heroine");
+					label.textContent = "★ HEROINE FOCUS";
+				} else if (this.focusMode === "center") {
+					badge.classList.add("is-center");
+					label.textContent = "★ CENTER";
+				} else {
+					// Auto tracking
+					badge.classList.add("is-auto");
+					if (subject === "hero") {
+						badge.classList.add("is-hero");
+						label.textContent = "★ HERO TRACK";
+					} else if (subject === "heroine") {
+						badge.classList.add("is-heroine");
+						label.textContent = "★ HEROINE TRACK";
+					} else {
+						badge.classList.add("is-center");
+						label.textContent = "★ DUET / CENTER";
+					}
+				}
+			},
+
+			updateFocusButtonUI: function () {
+				var btn = document.getElementById("canvas_focus_toggle_btn");
+				var text = document.getElementById("canvas_focus_toggle_text");
+				if (!btn || !text) return;
+
+				btn.classList.remove("active-hero", "active-heroine", "active");
+				if (this.focusMode === "hero") {
+					btn.classList.add("active-hero");
+					btn.innerHTML = '<i class="fa-solid fa-user"></i> <span id="canvas_focus_toggle_text">HERO</span>';
+					btn.title = "Current: Hero Focus • Tap to cycle";
+				} else if (this.focusMode === "heroine") {
+					btn.classList.add("active-heroine");
+					btn.innerHTML = '<i class="fa-solid fa-person-dress"></i> <span id="canvas_focus_toggle_text">HEROINE</span>';
+					btn.title = "Current: Heroine Focus • Tap to cycle";
+				} else if (this.focusMode === "center") {
+					btn.classList.add("active");
+					btn.innerHTML = '<i class="fa-solid fa-arrows-to-dot"></i> <span id="canvas_focus_toggle_text">CENTER</span>';
+					btn.title = "Current: Center Focus • Tap to cycle";
+				} else {
+					btn.innerHTML = '<i class="fa-solid fa-crosshairs"></i> <span id="canvas_focus_toggle_text">AUTO</span>';
+					btn.title = "Current: Auto Dynamic Tracking • Tap to cycle";
+				}
+			},
+
+			setFocusMode: function (mode) {
+				this.focusMode = mode;
+				try {
+					localStorage.setItem("canvas_focus_mode", mode);
+				} catch (e) { }
+
+				this.updateFocusButtonUI();
+				var toastLabel = mode === "auto" ? "Dynamic Auto Tracking" : (mode.toUpperCase() + " Focus");
+				if (typeof showToast === "function") {
+					showToast(toastLabel);
+				}
+				this.startTracking();
+			},
+
+			cycleFocusMode: function () {
+				var modes = ["auto", "hero", "heroine", "center"];
+				var currentIdx = modes.indexOf(this.focusMode);
+				var nextMode = modes[(currentIdx + 1) % modes.length];
+				this.setFocusMode(nextMode);
+			},
+
+			startTracking: function () {
+				var self = this;
+				var container = document.getElementById("lyrics_video_embed_container");
+				if (container && RealVideoLooper.aspectRatioMode === "crop-9-16") {
+					container.classList.add("dynamic-tracking-active");
+				}
+
+				if (this.isLoopRunning) return;
+				this.isLoopRunning = true;
+
+				var loop = function () {
+					if (!self.isLoopRunning) return;
+					var isStillMoving = self.updateFraming();
+
+					var audioEl = window.audio || (typeof audio !== "undefined" ? audio : null);
+					var isAudioPlaying = audioEl && !audioEl.paused;
+
+					if (isAudioPlaying || isStillMoving) {
+						self.animFrameId = requestAnimationFrame(loop);
+					} else {
+						// Settled while audio is paused; sleep until next playback event
+						self.isLoopRunning = false;
+						self.animFrameId = null;
+					}
+				};
+
+				this.animFrameId = requestAnimationFrame(loop);
+			},
+
+			stopTracking: function () {
+				this.isLoopRunning = false;
+				if (this.animFrameId) {
+					cancelAnimationFrame(this.animFrameId);
+					this.animFrameId = null;
+				}
+			}
+		},
+
+		updateAspectRatioButtonUI: function () {
+			var btn = document.getElementById("canvas_aspect_toggle_btn");
+			if (!btn) return;
+
+			var isCrop = (this.aspectRatioMode === "crop-9-16");
+			if (isCrop) {
+				btn.classList.add("active");
+				btn.innerHTML = '<i class="fa-solid fa-mobile-screen"></i> <span id="canvas_aspect_toggle_text">9:16 CROP</span>';
+				btn.title = "Current: 9:16 Crop • Tap for 16:9 Fit";
+			} else {
+				btn.classList.remove("active");
+				btn.innerHTML = '<i class="fa-solid fa-film"></i> <span id="canvas_aspect_toggle_text">16:9 FIT</span>';
+				btn.title = "Current: 16:9 Fit • Tap for 9:16 Crop";
+			}
+		},
+
+		// GPU-friendly dimensions updater without reading canvas pixels
+		updateVideoDimensions: function () {
+			var container = document.getElementById("lyrics_video_embed_container");
+			if (!container) return;
+			var iframe = container.querySelector("iframe");
+			if (!iframe) return;
+
+			var w = container.clientWidth;
+			var h = container.clientHeight;
+			if (!w || !h) return;
+
+			var videoRatio = 16 / 9;
+
+			if (this.aspectRatioMode === "crop-9-16") {
+				var containerRatio = w / h;
+				var targetW, targetH;
+				if (containerRatio < videoRatio) {
+					// Container is taller than 16:9 (portrait)
+					targetH = Math.ceil(h * 1.05); // slight extra for drift
+					targetW = Math.ceil(targetH * videoRatio);
+				} else {
+					// Container is wider than 16:9
+					targetW = Math.ceil(w * 1.05);
+					targetH = Math.ceil(targetW / videoRatio);
+				}
+				iframe.style.width = targetW + "px";
+				iframe.style.height = targetH + "px";
+				iframe.style.aspectRatio = "";
+				iframe.style.maxHeight = "";
+			} else {
+				// 16:9 Fit
+				iframe.style.width = "100%";
+				iframe.style.height = "auto";
+				iframe.style.aspectRatio = "16 / 9";
+				iframe.style.maxHeight = "100%";
+			}
+		},
+
+		setupResizeObserver: function () {
+			var self = this;
+			var container = document.getElementById("lyrics_video_embed_container");
+			if (!container) return;
+
+			if (typeof ResizeObserver !== "undefined") {
+				if (this.resizeObserver) {
+					try { this.resizeObserver.disconnect(); } catch (e) { }
+				}
+				this.resizeObserver = new ResizeObserver(function () {
+					self.updateVideoDimensions();
+				});
+				this.resizeObserver.observe(container);
+			} else {
+				window.addEventListener("resize", function () {
+					self.updateVideoDimensions();
+				});
+			}
+		},
+
 		init: function () {
+			try {
+				var savedMode = localStorage.getItem("canvas_aspect_ratio_mode");
+				if (savedMode === "fit-16-9" || savedMode === "crop-9-16") {
+					this.aspectRatioMode = savedMode;
+				}
+			} catch (e) { }
+
 			this.bindEvents();
+			this.setupResizeObserver();
+			this.updateAspectRatioButtonUI();
+			if (this.HeroTracker) {
+				this.HeroTracker.init();
+			}
 
 			var curSong = this.getCurrentSong();
 			if (curSong) {
@@ -141,6 +632,22 @@
 			var audioEl = window.audio || (typeof audio !== "undefined" ? audio : null);
 			if (!audioEl || typeof audioEl.currentTime !== "number" || isNaN(audioEl.currentTime)) return;
 
+			// If video duration is known and audio is beyond video duration, keep video in independent loop
+			if (this.currentVideoDuration && this.currentVideoDuration > 0) {
+				if (audioEl.currentTime < this.currentVideoDuration - 2) {
+					this.isVideoLoopingIndependently = false;
+				} else {
+					// Audio position is beyond video length: keep video looping in background without forcing sync
+					this.isVideoLoopingIndependently = true;
+					return;
+				}
+			}
+
+			// If video is already looping independently because it ended before the song, do not force-sync
+			if (this.isVideoLoopingIndependently) {
+				return;
+			}
+
 			var targetTime = audioEl.currentTime;
 
 			if (immediate) {
@@ -176,22 +683,41 @@
 
 			audioEl.addEventListener("pause", function () {
 				self.pauseVideo();
-				self.syncTimelineWithAudio(true);
+				if (!self.isVideoLoopingIndependently) {
+					self.syncTimelineWithAudio(true);
+				}
+				if (self.HeroTracker) {
+					self.HeroTracker.updateFraming();
+				}
 			});
 			audioEl.addEventListener("ended", function () {
 				self.pauseVideo();
+				if (self.HeroTracker) {
+					self.HeroTracker.stopTracking();
+				}
 			});
 			audioEl.addEventListener("play", function () {
-				self.syncTimelineWithAudio(true);
+				if (!self.isVideoLoopingIndependently) {
+					self.syncTimelineWithAudio(true);
+				}
 				self.resumeVideo();
+				if (self.HeroTracker && self.aspectRatioMode === "crop-9-16") {
+					self.HeroTracker.startTracking();
+				}
 			});
 			audioEl.addEventListener("seeking", function () {
 				self.isSeekingAudio = true;
 				self.syncTimelineWithAudio(false);
+				if (self.HeroTracker) {
+					self.HeroTracker.updateFraming();
+				}
 			});
 			audioEl.addEventListener("seeked", function () {
 				self.isSeekingAudio = false;
 				self.syncTimelineWithAudio(true);
+				if (self.HeroTracker) {
+					self.HeroTracker.updateFraming();
+				}
 			});
 		},
 
@@ -231,6 +757,37 @@
 				});
 			}
 
+			// Canvas Top HUD Aspect Ratio Switcher (9:16 Crop vs 16:9 Fit)
+			var aspectBtn = document.getElementById("canvas_aspect_toggle_btn");
+			if (aspectBtn) {
+				aspectBtn.addEventListener("click", function (e) {
+					e.stopPropagation();
+					self.toggleAspectRatioMode();
+				});
+			}
+
+			// Canvas Top HUD Focus Mode Switcher (Auto / Hero / Heroine / Center)
+			var focusBtn = document.getElementById("canvas_focus_toggle_btn");
+			if (focusBtn) {
+				focusBtn.addEventListener("click", function (e) {
+					e.stopPropagation();
+					if (self.HeroTracker) {
+						self.HeroTracker.cycleFocusMode();
+					}
+				});
+			}
+
+			// Canvas Hero Tracking Badge Click (also cycles focus modes)
+			var heroBadge = document.getElementById("canvas_hero_badge");
+			if (heroBadge) {
+				heroBadge.addEventListener("click", function (e) {
+					e.stopPropagation();
+					if (self.HeroTracker) {
+						self.HeroTracker.cycleFocusMode();
+					}
+				});
+			}
+
 			// Capture YouTube iframe postMessage messages & errors
 			window.addEventListener("message", function (e) {
 				try {
@@ -243,11 +800,53 @@
 						return;
 					}
 
-					// Dynamic drift synchronization: if YouTube video drifts from audio timeline by > 1.5s, re-sync
+					// Capture video duration if available
+					if (msg.info && typeof msg.info.duration === "number" && msg.info.duration > 0) {
+						self.currentVideoDuration = msg.info.duration;
+					}
+
+					// Detect when video ends (playerState: 0 is ENDED)
+					var playerState = (msg.info && typeof msg.info.playerState !== "undefined") ? msg.info.playerState : (msg.event === "onStateChange" ? msg.info : null);
+					if (playerState === 0 || playerState === "0") {
+						var audioEl = window.audio || (typeof audio !== "undefined" ? audio : null);
+						if (audioEl && !audioEl.paused) {
+							// Video length is shorter than song or has ended: loop seamlessly without forcing timeline sync
+							self.isVideoLoopingIndependently = true;
+							self.seekVideoTo(0, true);
+							self.resumeVideo();
+							return;
+						}
+					}
+
+					// Handle currentTime and dynamic drift synchronization
 					if (msg.info && typeof msg.info.currentTime === "number") {
+						var vidTime = msg.info.currentTime;
+						var vidDur = self.currentVideoDuration;
+
+						// If video is near the end of its duration (within 0.6s), loop seamlessly
+						if (vidDur && vidDur > 0 && vidTime >= vidDur - 0.6) {
+							var audioEl = window.audio || (typeof audio !== "undefined" ? audio : null);
+							if (audioEl && !audioEl.paused) {
+								self.isVideoLoopingIndependently = true;
+								self.seekVideoTo(0, true);
+								self.resumeVideo();
+								return;
+							}
+						}
+
+						// Dynamic drift synchronization:
+						// ONLY sync if video is NOT looping independently and audio timeline is within video duration
 						var audioEl = window.audio || (typeof audio !== "undefined" ? audio : null);
 						if (audioEl && !audioEl.paused && !self.isSeekingAudio && self.isVideoVisible) {
-							var drift = Math.abs(audioEl.currentTime - msg.info.currentTime);
+							if (self.isVideoLoopingIndependently) {
+								return; // Video is in independent loop mode - do NOT sync
+							}
+							if (vidDur && vidDur > 0 && audioEl.currentTime >= vidDur - 1.5) {
+								self.isVideoLoopingIndependently = true;
+								return; // Audio has progressed beyond video length
+							}
+
+							var drift = Math.abs(audioEl.currentTime - vidTime);
 							if (drift > 1.5) {
 								self.seekVideoTo(audioEl.currentTime, true);
 							}
@@ -342,6 +941,18 @@
 						// Clicking interactive controls resets/extends 5s timer
 						self.showBottomControls(5000);
 						return;
+					}
+
+					// Tapping video/canvas area: left third biases to Hero, right third to Heroine
+					if (self.aspectRatioMode === "crop-9-16" && self.HeroTracker && typeof e.clientX === "number") {
+						var rect = leftPanel.getBoundingClientRect();
+						var tapX = e.clientX - rect.left;
+						var ratio = tapX / (rect.width || 1);
+						if (ratio < 0.26) {
+							self.HeroTracker.setFocusMode("hero");
+						} else if (ratio > 0.74) {
+							self.HeroTracker.setFocusMode("heroine");
+						}
 					}
 
 					// Tapping video/canvas area toggles controls
@@ -655,10 +1266,18 @@
 			this.currentVideoId = null;
 			this.videoCycleState = 1;
 
+			this.destroyCurrentIframe();
 			var container = document.getElementById("lyrics_video_embed_container");
 			if (container) {
-				container.innerHTML = "";
 				container.classList.remove("cover-fallback-active");
+			}
+
+			// Generate camera choreography trajectory for this song
+			if (this.HeroTracker) {
+				var audioEl = window.audio || (typeof audio !== "undefined" ? audio : null);
+				var dur = (song && song.duration) || (audioEl && audioEl.duration) || 320;
+				this.HeroTracker.generateTrajectory(dur, song);
+				this.HeroTracker.smoothedShiftPx = 0;
 			}
 
 			// Keep unified cycling button visible in lyrics-controls-group
@@ -699,9 +1318,9 @@
 			this.toggleVideoDisplay(false);
 
 			// Ensure cover image is displayed as background on lyrics_video_embed_container
+			this.destroyCurrentIframe();
 			var container = document.getElementById("lyrics_video_embed_container");
 			if (container) {
-				container.innerHTML = "";
 				container.classList.add("cover-fallback-active");
 			}
 			this.setCoverBackground(this.getSongCover(song));
@@ -722,9 +1341,9 @@
 			this.toggleVideoDisplay(false);
 
 			// Remove broken iframe immediately to reveal the cover image background
+			this.destroyCurrentIframe();
 			var container = document.getElementById("lyrics_video_embed_container");
 			if (container) {
-				container.innerHTML = "";
 				container.classList.add("cover-fallback-active");
 			}
 			this.setCoverBackground(this.getSongCover());
@@ -865,15 +1484,22 @@
 				// Ensure cover image is also present behind the iframe as background
 				this.setCoverBackground(this.getSongCover());
 
+				// Strict memory management: destroy any previous iframe first
+				this.destroyCurrentIframe();
+
 				var embedUrl = "https://www.youtube-nocookie.com/embed/" + videoId +
-					"?autoplay=1&mute=1&loop=1&playlist=" + videoId +
-					"&controls=0&modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1&enablejsapi=1";
+					"?autoplay=1&mute=1&controls=0&loop=1&playlist=" + videoId +
+					"&playsinline=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1";
 
 				var iframe = document.createElement("iframe");
 				iframe.src = embedUrl;
 				iframe.className = "real-video-loop-iframe";
 				iframe.allow = "autoplay; encrypted-media";
 				iframe.frameBorder = "0";
+				iframe.setAttribute("playsinline", "1");
+				iframe.setAttribute("webkit-playsinline", "1");
+				iframe.style.pointerEvents = "none";
+
 				iframe.onerror = function () {
 					self.onVideoLoadFailed();
 				};
@@ -882,6 +1508,7 @@
 						iframe.contentWindow.postMessage(JSON.stringify({ event: "listening" }), "*");
 					} catch (e) { }
 
+					self.updateVideoDimensions();
 					self.bindAudioSyncEvents();
 					var audioEl = window.audio || (typeof audio !== "undefined" ? audio : null);
 					if (audioEl) {
@@ -894,10 +1521,21 @@
 							self.resumeVideo();
 						}
 					}
+					if (self.HeroTracker && self.aspectRatioMode === "crop-9-16") {
+						self.HeroTracker.startTracking();
+					}
 				};
 
-				container.innerHTML = "";
+				container.classList.remove("mode-crop-916", "mode-fit-169");
+				container.classList.add(self.aspectRatioMode === "crop-9-16" ? "mode-crop-916" : "mode-fit-169");
+				if (self.aspectRatioMode === "crop-9-16") {
+					container.classList.add("dynamic-tracking-active");
+				}
 				container.appendChild(iframe);
+				self.updateVideoDimensions();
+				if (self.HeroTracker && self.aspectRatioMode === "crop-9-16") {
+					self.HeroTracker.startTracking();
+				}
 			}
 
 			var loader = document.getElementById("video_loop_loader");
@@ -925,7 +1563,12 @@
 				var audioEl = window.audio || (typeof audio !== "undefined" ? audio : null);
 				if (audioEl && !audioEl.paused) {
 					this.resumeVideo();
-					this.syncTimelineWithAudio(true);
+					if (!this.isVideoLoopingIndependently) {
+						this.syncTimelineWithAudio(true);
+					}
+					if (this.HeroTracker && this.aspectRatioMode === "crop-9-16") {
+						this.HeroTracker.startTracking();
+					}
 				}
 			}
 		},

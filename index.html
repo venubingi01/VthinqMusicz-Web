@@ -366,8 +366,29 @@
          <div class="lyrics-left-panel video-mode-active" id="lyrics_left_panel">
             <!-- Full Bleed Looping Video Background inside lyrics-left-panel (Spotify Canvas style) -->
             <div class="lyrics-panel-video-bg" id="lyrics_panel_video_bg">
-               <div id="lyrics_video_embed_container" class="video-embed-container"></div>
+               <div id="lyrics_video_embed_container" class="video-embed-container mode-crop-916"></div>
                <div class="lyrics-panel-video-overlay"></div>
+
+               <!-- Top Floating Glass HUD for Canvas Mode -->
+               <div class="canvas-top-hud" id="canvas_top_hud">
+                  <div class="canvas-top-left-hud">
+                     <span id="canvas_hero_badge" class="canvas-hero-badge is-auto"
+                        title="Dynamic Subject Tracking Active">
+                        <i class="fa-solid fa-crosshairs"></i> <span id="canvas_hero_label">★ AUTO TRACK</span>
+                     </span>
+                  </div>
+                  <div class="canvas-top-right-hud">
+                     <button type="button" id="canvas_focus_toggle_btn" class="canvas-hud-pill-btn canvas-focus-btn"
+                        title="Cycle Focus: Auto / Hero / Heroine">
+                        <i class="fa-solid fa-user"></i> <span id="canvas_focus_toggle_text">AUTO</span>
+                     </button>
+                     <!-- <button type="button" id="canvas_aspect_toggle_btn" class="canvas-hud-pill-btn"
+                        title="Toggle 9:16 Crop / 16:9 Fit">
+                        <i class="fa-solid fa-mobile-screen"></i> <span id="canvas_aspect_toggle_text">9:16 CROP</span>
+                     </button> -->
+                  </div>
+               </div>
+
                <div class="video-loop-loader" id="video_loop_loader" style="display: none;">
                   <i class="fa fa-circle-o-notch fa-spin"></i>
                   <span>Finding Music Video...</span>
