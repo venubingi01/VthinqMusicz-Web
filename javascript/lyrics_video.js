@@ -491,7 +491,7 @@
 				var targetW, targetH;
 				if (containerRatio < videoRatio) {
 					// Container is taller than 16:9 (portrait)
-					targetH = Math.ceil(h * 1.05); // slight extra for drift
+					targetH = Math.ceil(h * 1.50); // slight extra for drift
 					targetW = Math.ceil(targetH * videoRatio);
 				} else {
 					// Container is wider than 16:9

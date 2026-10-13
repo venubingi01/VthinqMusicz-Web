@@ -2290,19 +2290,40 @@ input[type='range']::-webkit-slider-thumb:hover {
 
 .no-lyrics-placeholder {
 	padding: 60px 20px;
-	color: rgb(219 219 219 / 21%);
+	color: #ffffff;
 	font-size: 15px;
 	font-weight: 600;
 	display: flex;
 	text-shadow: 0 0 10px #0c0c0c87;
 	align-items: center;
+	gap: 16px;
 }
 
 .no-lyrics-placeholder i {
-	font-size: 32px;
-	color: #464242;
+	font-size: 36px;
+	color: #ff2d49;
 	display: block;
-	margin: 10px;
+	margin: 10px 10px 10px 0;
+	flex-shrink: 0;
+}
+
+.no-lyrics-meta {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.no-lyrics-title {
+	font-size: 28px;
+	font-weight: 700;
+	color: #ffffff;
+	line-height: 1.25;
+}
+
+.no-lyrics-artist {
+	font-size: 16px;
+	font-weight: 500;
+	color: rgba(255, 255, 255, 0.7);
 }
 
 /* Floating Lyrics Modal Overlay */

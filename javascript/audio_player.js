@@ -2632,8 +2632,8 @@ async function loadLyricsForCurrentSong(forceReload) {
 
 		if (!timed || timed.length === 0) {
 			setLyricsAvailabilityState(false);
-			c.innerHTML = '<div class="no-lyrics-placeholder"><i class="fa-solid fa-guitar"></i> No synced lyrics found for this track.</div>';
-			hideNoLyricsPlaceholder();
+			c.innerHTML = '<div class="no-lyrics-placeholder"><i class="fa-solid fa-guitar"></i><div class="no-lyrics-meta"><span class="no-lyrics-title" style="font-size: 28px; font-weight: 700; color: #ffffff; display: block; margin-bottom: 4px; line-height: 1.25;">' + (song.title || '') + '</span>' + (song.artist ? '<span class="no-lyrics-artist" style="font-size: 16px; font-weight: 500; color: rgba(255, 255, 255, 0.7); display: block;">' + song.artist + '</span>' : '') + '</div></div>';
+			//hideNoLyricsPlaceholder();
 			return;
 		}
 
